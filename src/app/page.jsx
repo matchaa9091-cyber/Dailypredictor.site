@@ -353,8 +353,14 @@ export default function App() {
           )
         )}
 
-        <p style={{textAlign:"center",fontSize:11,color:t.textDim,lineHeight:1.8,fontWeight:800,padding:"0 15px",marginTop:30}}>⚠️ AI predictions are for entertainment and analysis only. We do not offer gambling services. Please play responsibly. 18+</p>
-      </div>
+        </div>
+
+      {/* ADMIN DOT */}
+      <a href="/admin" style={{
+        position:"fixed", bottom:20, right:20, width:15, height:15, 
+        background:"#000", border:"1px solid #222", borderRadius:"50%", 
+        cursor:"pointer", opacity:0.3, transition:"opacity 0.2s"
+      }} onMouseOver={e=>e.currentTarget.style.opacity=1} onMouseOut={e=>e.currentTarget.style.opacity=0.3} />
     </div>
   );
 }
