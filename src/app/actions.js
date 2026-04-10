@@ -2,45 +2,40 @@
 
 import { supabase } from "../lib/supabaseClient";
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 const API_FOOTBALL_KEY = process.env.API_FOOTBALL_KEY;
 
 export async function getAIAnalysisAction(accum) {
-  if (!ANTHROPIC_API_KEY) {
-    // Fallback if no key is provided yet
+  if (!GEMINI_API_KEY) {
     return accum.matches.map(m => ({
       id: m.id,
-      analysis: `${m.h} are in strong form. Recent data suggests ${m.mkt} is the high-value pick @${m.odds}.`
+      analysis: `${m.h} showed strong potential in their last outing. With ${m.mkt} being a consistent trend, this is a solid pick for today's ticket.`
     }));
   }
 
   const body = accum.matches.map(m =>
-    `Match: ${m.h} vs ${m.a} (${m.lg}). Pick:"${m.pick}" (${m.mkt}) @${m.odds}. H2H and Form considered.`
+    `Match: ${m.h} vs ${m.a} (${m.lg}). Pick:"${m.pick}" (${m.mkt}) @${m.odds}.`
   ).join("\n");
 
   try {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    // Using Google Gemini Flash (Free Tier)
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": ANTHROPIC_API_KEY,
-        "anthropic-version": "2023-06-01"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        model: "claude-3-5-sonnet-20240620",
-        max_tokens: 1024,
-        messages: [{
-          role: "user",
-          content: `You are a sharp football analyst for PredictorUG. For each match below, write a PUNCHY 1-2 sentence analysis explaining WHY the pick is correct. Use specific stats if mentioned. RETURN ONLY A JSON ARRAY like this: [{"id":"uuid-or-id", "analysis": "..."}] -- no markdown, no extra text.\n\n${body}`
+        contents: [{
+          parts: [{
+            text: `You are a sharp football analyst for PredictorUG. For each match below, write a PUNCHY 1-2 sentence analysis explaining WHY the pick is most likely correct. Be confident and use a high-energy betting style. RETURN ONLY A JSON ARRAY like this: [{"id":"match_id_here", "analysis": "..."}] -- absolutely no other text.\n\n${body}`
+          }]
         }]
       })
     });
 
     const data = await res.json();
-    const txt = data.content?.[0]?.text || "[]";
+    const txt = data.candidates?.[0]?.content?.parts?.[0]?.text || "[]";
     return JSON.parse(txt.replace(/```json|```/g, "").trim());
   } catch (error) {
-    console.error("AI Analysis Error:", error);
+    console.error("Gemini Analysis Error:", error);
     return [];
   }
 }
@@ -58,9 +53,23 @@ export async function fetchFixturesAction() {
         }).then(r => r.json())
       )
     );
-    // ... processing logic similar to what was in page.jsx but on server
-    // For brevity, I'll return a placeholder or implement the full logic
-    return null; // Update this after testing
+    // Logic to process real data
+    const matches = [];
+    results.forEach((res, i) => {
+      if (res.status === "fulfilled" && res.value.response) {
+        res.value.response.forEach(fix => {
+          matches.push({
+            id: fix.fixture.id,
+            h: fix.teams.home.name,
+            a: fix.teams.away.name,
+            lg: fix.league.name,
+            fl: "⚽",
+            kickoff: fix.fixture.date,
+          });
+        });
+      }
+    });
+    return matches.length > 5 ? matches : null;
   } catch (error) {
     console.error("Fetch Fixtures Error:", error);
     return null;
@@ -68,7 +77,6 @@ export async function fetchFixturesAction() {
 }
 
 export async function saveDailyAccumsAction(accums) {
-  // Logic to save generated accums to Supabase
   for (const [tier, acc] of Object.entries(accums)) {
     const { data: accumData, error: accumError } = await supabase
       .from('daily_accums')
@@ -106,18 +114,6 @@ export async function getDailyAccumsAction() {
     `)
     .eq('date', new Date().toISOString().slice(0, 10));
 
-  if (error) return null;
+  if (error || !data || data.length === 0) return null;
   return data;
-}
-
-export async function checkUnlockStatusAction(phoneNumber, tier) {
-    const { data, error } = await supabase
-        .from('unlocked_tickets')
-        .select('*')
-        .eq('phone_number', phoneNumber)
-        .eq('tier', tier)
-        .eq('date', new Date().toISOString().slice(0, 10))
-        .single();
-    
-    return !!data;
 }
