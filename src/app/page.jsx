@@ -7,7 +7,7 @@ import {
 
 // ─── TIER CONFIG ─────────────────────────────────────────────────────────────
 const TIERS = {
-  free:    { label:"FREE",    emoji:"🆓", price:0,    color:"#4CAF50", dark:true,  desc:"2 daily picks · No payment needed" },
+  free:    { label:"FREE",    emoji:"🌿", price:0,    color:"#4CAF50", dark:true,  desc:"2 daily picks · No payment needed" },
   vip:     { label:"VIP",     emoji:"⭐", price:1000,  color:"#F5C842", dark:true,  desc:"3 researched picks · High confidence" },
   premium: { label:"PREMIUM", emoji:"💎", price:2500,  color:"#B388FF", dark:false, desc:"5 elite picks · Expert analysis" },
 };
@@ -148,7 +148,7 @@ function AccumCard({ accum, dark, t }) {
     <div style={{background:t.surface,border:`1.5px solid ${unlocked?cfg.color+"66":t.border}`,borderRadius:20,overflow:"hidden",marginBottom:25,animation:"fadeUp 0.5s ease"}}>
       <div style={{background:dark?`${cfg.color}0E`:`${cfg.color}16`,borderBottom:`1px solid ${t.border}`,padding:"15px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:32,height:32,borderRadius:9,background:cfg.color,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16}}>{cfg.emoji}</div>
+          <div style={{display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{cfg.emoji}</div>
           <div>
             <div style={{fontFamily:"'Russo One',sans-serif",fontSize:14,color:cfg.color,letterSpacing:0.5}}>{cfg.label} ACCUMULATOR</div>
             <div style={{fontSize:10,color:t.textDim,marginTop:1,fontWeight:900}}>{cfg.desc}</div>
