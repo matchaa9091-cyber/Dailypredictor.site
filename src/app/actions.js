@@ -18,7 +18,6 @@ export async function getAIAnalysisAction(accum) {
   ).join("\n");
 
   try {
-    // Using Google Gemini Flash (Free Tier)
     const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -53,7 +52,7 @@ export async function fetchFixturesAction() {
         }).then(r => r.json())
       )
     );
-    // Logic to process real data
+
     const matches = [];
     results.forEach((res, i) => {
       if (res.status === "fulfilled" && res.value.response) {
@@ -65,11 +64,16 @@ export async function fetchFixturesAction() {
             lg: fix.league.name,
             fl: "⚽",
             kickoff: fix.fixture.date,
+            hF: ["W","W","D","W","L"],
+            aF: ["L","D","W","W","W"],
+            hG: 1.5, aG: 1.2
           });
         });
       }
     });
-    return matches.length > 5 ? matches : null;
+
+    const uniqueMatches = Array.from(new Map(matches.map(m => [m.id, m])).values());
+    return uniqueMatches.length >= 10 ? uniqueMatches : null;
   } catch (error) {
     console.error("Fetch Fixtures Error:", error);
     return null;
@@ -80,7 +84,7 @@ export async function saveDailyAccumsAction(accums) {
   for (const [tier, acc] of Object.entries(accums)) {
     const { data: accumData, error: accumError } = await supabase
       .from('daily_accums')
-      .upsert({ tier, total_odds: acc.totalOdds, first_kickoff: acc.matches[0].kickoff }, { onConflict: 'tier, date' })
+      .upsert({ tier, total_odds: acc.totalOdds, date: new Date().toISOString().slice(0, 10), first_kickoff: acc.matches[0].kickoff }, { onConflict: 'tier, date' })
       .select()
       .single();
 
@@ -116,4 +120,16 @@ export async function getDailyAccumsAction() {
 
   if (error || !data || data.length === 0) return null;
   return data;
+}
+
+export async function checkUnlockStatusAction(phoneNumber, tier) {
+    const { data, error } = await supabase
+        .from('unlocked_tickets')
+        .select('*')
+        .eq('phone_number', phoneNumber)
+        .eq('tier', tier)
+        .eq('date', new Date().toISOString().slice(0, 10))
+        .single();
+    
+    return !!data;
 }
