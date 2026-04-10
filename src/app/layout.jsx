@@ -1,13 +1,19 @@
 import "./globals.css";
-export const metadata = {
-  title: "PredictorUG - Daily Safe Tickets & AI Analysis",
-  description: "Get researched football accumulators with live data and Claude AI analysis. The most reliable betting predictions in Uganda.",
-  manifest: "/manifest.json",
-  viewport: "width=device-width, initial-scale=1, maximum-scale=1",
+
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
   themeColor: "#00D45E",
+};
+
+export const metadata = {
+  title: "PredictorUG - Expert Daily Tickets",
+  description: "Get researched football accumulators with expert analysis. The most reliable betting predictions in Uganda.",
+  manifest: "/manifest.json",
   openGraph: {
-    title: "PredictorUG - AI-Powered Winning Tickets",
-    description: " researched football accumulators with live data.",
+    title: "PredictorUG - Expert Winning Tickets",
+    description: "Expertly researched football accumulators with pro analysis.",
     url: "https://predictor-ug.vercel.app",
     siteName: "PredictorUG",
     locale: "en_UG",
@@ -20,7 +26,6 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <head>
         <link rel="icon" href="/favicon.svg" />
-        <link rel="manifest" href="/manifest.json" />
       </head>
       <body style={{ margin: 0 }}>{children}</body>
     </html>
