@@ -7,9 +7,9 @@ import {
 
 // ─── TIER CONFIG ─────────────────────────────────────────────────────────────
 const TIERS = {
-  free:    { label:"FREE",    emoji:"🌿", price:0,    color:"#4CAF50", dark:true,  desc:"2 daily picks · No payment needed" },
-  vip:     { label:"VIP",     emoji:"⭐", price:1000,  color:"#F5C842", dark:true,  desc:"3 researched picks · High confidence" },
-  premium: { label:"PREMIUM", emoji:"💎", price:2500,  color:"#9D4EDD", dark:false, desc:"5 elite picks · Expert analysis" },
+  free:    { label:"FREE",        emoji:"🌿", price:0,    color:"#4CAF50", dark:true,  desc:"2 daily picks · No payment needed" },
+  vip:     { label:"VIP SAFE",    emoji:"⭐", price:1000,  color:"#F5C842", dark:true,  desc:"3 researched picks · Daily Access" },
+  premium: { label:"VIP BIG",     emoji:"💎", price:1000,  color:"#9D4EDD", dark:false, desc:"5 elite picks · Daily Access" },
 };
 
 // ─── COMPONENTS ─────────────────────────────────────────────────────────────
@@ -75,8 +75,8 @@ function PayScreen({ accum, t, dark, onBack, onPaid }) {
       <button onClick={onBack} style={{background:"none",border:"none",color:t.textDim,cursor:"pointer",fontSize:13,fontWeight:800,marginBottom:14,padding:0}}>← Back</button>
       <div style={{textAlign:"center",marginBottom:16}}>
         <div style={{fontSize:26}}>{cfg.emoji}</div>
-        <div style={{fontFamily:"'Russo One',sans-serif",fontSize:19,color:cfg.color,marginTop:4}}>{cfg.label} UNLOCK</div>
-        <div style={{fontSize:12,color:t.textDim,marginTop:3,fontWeight:700}}>{accum.matches.length} picks · Expert analysis</div>
+        <div style={{fontFamily:"'Russo One',sans-serif",fontSize:19,color:cfg.color,marginTop:4}}>{cfg.label} ACCESS</div>
+        <div style={{fontSize:12,color:t.textDim,marginTop:3,fontWeight:700}}>Full Daily Access to all locked tickets</div>
       </div>
       <div style={{background:t.bg,border:`1px solid ${t.border}`,borderRadius:12,marginBottom:14,overflow:"hidden"}}>
         {(accum.matches || []).map((m,i)=>(
@@ -131,18 +131,22 @@ function AccumCard({ accum, dark, t }) {
   const [activeAnalysis, setActiveAnalysis] = useState(null);
 
   useEffect(() => {
-    const unlockedId = localStorage.getItem(`unlocked-${accum.tier}-${new Date().toISOString().slice(0,10)}`);
-    if (unlockedId === accum.id) {
+    const dailyAccess = localStorage.getItem(`unlocked-daily-access-${new Date().toISOString().slice(0,10)}`);
+    if (dailyAccess === "true") {
       setUnlocked(true);
     } else {
       setUnlocked(accum.tier === "free");
     }
-  }, [accum.tier, accum.id]);
+  }, [accum.tier]);
 
   const handlePaid = (phone) => {
     setUnlocked(true);
     setPayOpen(false);
-    localStorage.setItem(`unlocked-${accum.tier}-${new Date().toISOString().slice(0,10)}`, accum.id);
+    localStorage.setItem(`unlocked-daily-access-${new Date().toISOString().slice(0,10)}`, "true");
+    // Trigger a window event or state lift if I wanted other cards to refresh immediately, 
+    // but a simple refresh or just standard React state for this card is fine.
+    // For "Daily Access", clicking one should ideally unlock all immediately.
+    window.location.reload(); // Quickest way to sync all cards since they use local storage
   };
 
   const { expired } = useCountdown(accum.first_kickoff || accum.firstKick);
@@ -155,7 +159,7 @@ function AccumCard({ accum, dark, t }) {
           <div style={{display:"flex",alignItems:"center",justifyContent:"center",fontSize:24}}>{cfg.emoji}</div>
           <div>
             <div style={{fontFamily:"'Russo One',sans-serif",fontSize:14,color:cfg.color,letterSpacing:0.5}}>{cfg.label} TICKET</div>
-            <div style={{fontSize:10,color:t.textDim,marginTop:1,fontWeight:900}}>{cfg.desc}</div>
+            <div style={{fontSize:10,color:t.textDim,marginTop:1,fontWeight:900}}>Daily Access Includes This Ticket</div>
           </div>
         </div>
         {unlocked 
@@ -243,7 +247,7 @@ function AccumCard({ accum, dark, t }) {
                 fontSize:17,letterSpacing:1,cursor:"pointer",transition:"all 0.2s",
                 boxShadow:`0 8px 22px ${cfg.color}44`,
               }}>
-                🔓 UNLOCK NOW · UGX {cfg.price.toLocaleString()}
+                🔓 GET DAILY ACCESS · UGX 1,000
               </button>
             ) : (
                 <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:6,background:`${cfg.color}10`,padding:"12px",borderRadius:12}}>

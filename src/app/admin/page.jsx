@@ -220,7 +220,9 @@ function EditModal({ accum, onClose, onSaved }) {
                   color: tier === t ? TIER_COLOR[t] : DARK.text,
                   cursor: "pointer", fontWeight: 800, textTransform: "uppercase", fontSize: 13,
                 }}
-              >{t}</button>
+              >
+                {t === "vip" ? "VIP SAFE" : t === "premium" ? "VIP BIG" : t}
+              </button>
             ))}
           </div>
         </div>
@@ -394,7 +396,9 @@ export default function AdminPage() {
                       color: tier === t ? TIER_COLOR[t] : DARK.text,
                       cursor: "pointer", fontWeight: 800, textTransform: "uppercase",
                     }}
-                  >{t}</button>
+                  >
+                    {t === "vip" ? "VIP SAFE" : t === "premium" ? "VIP BIG" : t}
+                  </button>
                 ))}
               </div>
             </div>
@@ -456,7 +460,9 @@ export default function AdminPage() {
                       color: filterTier === t ? (TIER_COLOR[t] || DARK.green) : DARK.textDim,
                       cursor: "pointer", textTransform: "uppercase",
                     }}
-                  >{t}</button>
+                  >
+                    {t === "vip" ? "VIP SAFE" : t === "premium" ? "VIP BIG" : t}
+                  </button>
                 ))}
               </div>
               <button
@@ -509,7 +515,7 @@ export default function AdminPage() {
                     <span style={{
                       background: `${tc}22`, color: tc, padding: "4px 12px",
                       borderRadius: 20, fontSize: 11, fontWeight: 900, textTransform: "uppercase",
-                    }}>{acc.tier}</span>
+                    }}>{acc.tier === "vip" ? "VIP SAFE" : acc.tier === "premium" ? "VIP BIG" : acc.tier}</span>
 
                     {/* Odds + date */}
                     <div style={{ flex: 1 }}>
