@@ -336,11 +336,9 @@ export default function App() {
         <p style={{textAlign:"center",fontSize:11,color:t.textDim,lineHeight:1.8,fontWeight:800,padding:"0 15px",marginTop:30}}>⚠️ Tickets are for entertainment and info only. Please play responsibly. 18+</p>
         
         <div style={{marginTop:50,paddingTop:30,borderTop:`1.5px solid ${t.border}`,textAlign:"center"}}>
-          <h2 style={{fontFamily:"'Russo One',sans-serif",fontSize:18,color:t.text,marginBottom:10}}>About Daily Predictor</h2>
+          <h2 style={{fontFamily:"'Russo One',sans-serif",fontSize:18,color:t.text,marginBottom:10}}>About Daily Predictor UG</h2>
           <p style={{fontSize:13,color:t.textDim,lineHeight:1.6,fontWeight:800,marginBottom:20}}>
-            Daily Predictor is Uganda's number one source for expert football analysis and daily betting tickets. 
-            Our team uses advanced statistics and data from platforms like Sofascore and Flashscore to provide 
-            highly researched match predictions.
+            Stop betting on gut feelings. At Daily Predictor, we do the heavy lifting for you. We compile data and expert analysis from the world's leading sports platforms to transform complex performance metrics and advanced football statistics into clear, actionable daily tickets. Whether it’s an obscure league or the Champions League, we give Ugandan fans the expert insight they need to stay ahead of the game.
           </p>
           <div style={{fontSize:12,color:t.textDim,fontWeight:900}}>
             Powered by <span style={{color:"#00D45E"}}>Metric Data Insights</span>
