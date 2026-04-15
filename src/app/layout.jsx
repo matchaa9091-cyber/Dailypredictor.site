@@ -8,14 +8,15 @@ export const viewport = {
 };
 
 export const metadata = {
-  title: "PredictorUG - Expert Daily Tickets",
-  description: "Get researched football tickets with expert analysis. The most reliable betting predictions in Uganda.",
+  title: "Daily Predictor UG - Expert Football Analysis & Daily Tickets",
+  description: "Get the best football match analysis and daily prediction tickets in Uganda. Reliable stats for Sofascore and Flashscore users.",
+  keywords: ["Daily Predictor", "Uganda football tips", "match analysis", "Victor Data Insights"],
   manifest: "/manifest.json",
   openGraph: {
-    title: "PredictorUG - Expert Winning Tickets",
-    description: "Expertly researched football tickets with pro analysis.",
-    url: "https://predictor-ug.vercel.app",
-    siteName: "PredictorUG",
+    title: "Daily Predictor UG - Expert Football Analysis & Daily Tickets",
+    description: "Get the best football match analysis and daily prediction tickets in Uganda.",
+    url: "https://dailypredictor.site",
+    siteName: "Daily Predictor UG",
     locale: "en_UG",
     type: "website",
   },

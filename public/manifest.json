@@ -1,7 +1,7 @@
 {
-  "name": "PredictorUG",
-  "short_name": "PredictorUG",
-  "description": "AI-Powered football accumulators for the UG betting scene.",
+  "name": "Daily Predictor UG",
+  "short_name": "Daily Predictor",
+  "description": "Expert football analysis and daily betting tickets in Uganda.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#000000",
