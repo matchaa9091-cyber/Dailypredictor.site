@@ -20,6 +20,9 @@ export const metadata = {
     locale: "en_UG",
     type: "website",
   },
+  verification: {
+    google: "HwLffxN7kXaT6BfkGvNmxSYbjUkCB374_dFqDEZ3t9U",
+  },
 };
 
 export default function RootLayout({ children }) {
