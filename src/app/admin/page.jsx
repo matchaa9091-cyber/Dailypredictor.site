@@ -6,6 +6,7 @@ import {
   getAllAccumsAction,
   deleteAccumAction,
   updateAccumAction,
+  getPaymentRequestsAction,
 } from "../actions";
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
@@ -284,6 +285,10 @@ export default function AdminPage() {
   const [filterTier, setFilterTier] = useState("all");
   const [deletingId, setDeletingId] = useState(null);
 
+  // ── PAYMENTS TAB state ──────────────────────────────────────────────────────
+  const [payments, setPayments] = useState([]);
+  const [fetchingPayments, setFetchingPayments] = useState(false);
+
   // ── Helpers: Create tab ────────────────────────────────────────────────────
   const addMatch = () => setMatches([...matches, blankMatch()]);
   const removeMatch = (i) => setMatches(matches.filter((_, idx) => idx !== i));
@@ -326,7 +331,15 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (tab === "manage") loadAccums();
+    if (tab === "payments") loadPayments();
   }, [tab, loadAccums]);
+
+  const loadPayments = async () => {
+    setFetchingPayments(true);
+    const data = await getPaymentRequestsAction();
+    setPayments(data);
+    setFetchingPayments(false);
+  };
 
   const handleDelete = async (id) => {
     if (!confirm("Delete this ticket? This cannot be undone.")) return;
@@ -359,8 +372,9 @@ export default function AdminPage() {
         {/* Tab switcher */}
         <div style={{ display: "flex", gap: 10, marginBottom: 32 }}>
           {[
-            { key: "create", label: "✏️  Create Ticket" },
-            { key: "manage", label: "🗂️  Manage Tickets" },
+            { key: "create", label: "✏️  Create" },
+            { key: "manage", label: "🗂️  Manage" },
+            { key: "payments", label: "💰  Payments" },
           ].map(({ key, label }) => (
             <button
               key={key}
@@ -587,6 +601,42 @@ export default function AdminPage() {
               );
             })}
           </>
+        )}
+
+        {/* ═══════════ PAYMENTS TAB ═══════════ */}
+        {tab === "payments" && (
+          <div style={{ animation: "fadeUp 0.3s ease" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+              <div style={{ fontSize: 13, color: DARK.textDim, fontWeight: 800 }}>LATEST PAYMENT ATTEMPTS</div>
+              <button onClick={loadPayments} style={{ background: DARK.surface, border: `1px solid ${DARK.border}`, color: DARK.textDim, padding: "6px 12px", borderRadius: 8, fontSize: 11, cursor: "pointer" }}>↻ Refresh</button>
+            </div>
+            {fetchingPayments ? (
+              <div style={{ textAlign: "center", padding: 40, color: DARK.textDim }}>Loading payments...</div>
+            ) : payments.length === 0 ? (
+              <div style={{ textAlign: "center", padding: 50, border: `1px dashed ${DARK.border}`, borderRadius: 14, color: DARK.textDim }}>No payment requests yet.</div>
+            ) : (
+              payments.map((p, i) => (
+                <div key={p.id || i} style={{ background: DARK.surface, border: `1px solid ${DARK.border}`, borderRadius: 12, padding: 15, marginBottom: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: DARK.text }}>+256 {p.phone_number}</div>
+                    <div style={{ fontSize: 11, color: DARK.textDim, marginTop: 4 }}>
+                      <span style={{ color: p.method === "mtn" ? DARK.amber : DARK.red, fontWeight: 900, textTransform: "uppercase" }}>{p.method}</span> • {p.tier?.toUpperCase()} • {formatDate(p.created_at)}
+                    </div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 14, fontWeight: 900, color: DARK.green }}>UGX {p.amount?.toLocaleString()}</div>
+                    <div style={{ fontSize: 10, color: DARK.textDim, marginTop: 4, fontWeight: 800 }}>STATUS: PENDING</div>
+                  </div>
+                </div>
+              ))
+            )}
+            <div style={{ marginTop: 25, padding: 18, background: "rgba(255,168,0,0.1)", border: `1.5px solid ${DARK.amber}33`, borderRadius: 12 }}>
+              <p style={{ fontSize: 12, color: DARK.amber, margin: 0, fontWeight: 800, lineHeight: 1.5 }}>
+                💡 <strong>Manual Verification:</strong> These are users who clicked "Confirm Payment" on your site. 
+                Please verify their payment by checking your phone's MoMo or Airtel Money messages for matching amounts and phone numbers.
+              </p>
+            </div>
+          </div>
         )}
       </div>
 

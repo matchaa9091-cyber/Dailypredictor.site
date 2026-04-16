@@ -233,3 +233,37 @@ export async function updateAccumAction(accumId, tier, matches) {
   }
   return true;
 }
+
+export async function requestPaymentAction(phone, method, tier, price) {
+  const { data, error } = await supabase
+    .from('payment_requests')
+    .insert({
+      phone_number: phone,
+      method,
+      tier,
+      amount: price,
+      status: 'pending',
+      date: new Date().toISOString().slice(0, 10),
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("[requestPaymentAction] Error:", error);
+    return { success: false, error };
+  }
+  return { success: true, data };
+}
+
+export async function getPaymentRequestsAction() {
+  const { data, error } = await supabase
+    .from('payment_requests')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error("[getPaymentRequestsAction] Error:", error);
+    return [];
+  }
+  return data || [];
+}
