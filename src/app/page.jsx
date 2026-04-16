@@ -132,28 +132,35 @@ function PayScreen({ accum, t, dark, onBack, onPaid }) {
       {/* STEP 1: SELECT PROVIDER */}
       <div style={{marginBottom:18}}>
         <div style={{fontSize:10, color:t.textDim, fontWeight:900, letterSpacing:1.5, marginBottom:10, textTransform:"uppercase"}}>STEP 1: SELECT YOUR NETWORK</div>
-        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:10}}>
+        <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12}}>
           {[
             {id:"mtn", lbl:"MTN MoMo", img:"/mtn_logo.jpg", c:"#FFD700"}, 
             {id:"airtel", lbl:"Airtel Money", img:"/airtel_logo.jpg", c:"#FF3B5C"}
           ].map(pm => (
             <button key={pm.id} onClick={() => setPayMethod(pm.id)} style={{
-              padding:"12px 10px", 
-              border:`2px solid ${payMethod === pm.id ? pm.c : t.border}`, 
-              borderRadius:12, 
+              height:80,
+              padding:0, 
+              border:`2.5px solid ${payMethod === pm.id ? pm.c : "transparent"}`, 
+              borderRadius:16, 
               cursor:"pointer", 
-              background:payMethod === pm.id ? `${pm.c}10` : t.surface, 
-              display:"flex", 
-              flexDirection:"column",
-              alignItems:"center", 
-              justifyContent:"center",
-              gap:8, 
+              background:pm.c, 
+              overflow:"hidden",
               transition:"all 0.2s",
-              position:"relative"
+              position:"relative",
+              outline: "none",
+              boxShadow: payMethod === pm.id ? `0 0 15px ${pm.c}66` : "none"
             }}>
-              <img src={pm.img} alt={pm.lbl} style={{height:24, width:"auto", borderRadius:4, objectFit:"contain"}} />
-              <span style={{fontSize:11, fontWeight:900, color:payMethod === pm.id ? pm.c : t.textDim}}>{pm.lbl}</span>
-              {payMethod === pm.id && <div style={{position:"absolute", top:-6, right:-6, background:pm.c, color:"#000", width:18, height:18, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:10, fontWeight:900, border:`2px solid ${t.bg}`}}>✓</div>}
+              <img src={pm.img} alt={pm.lbl} style={{
+                width:"100%", 
+                height:"100%", 
+                objectFit:"cover",
+                opacity: payMethod === pm.id ? 1 : 0.8
+              }} />
+              {payMethod === pm.id && (
+                <div style={{
+                  position:"absolute", top:8, right:8, background:"#000", color:pm.c, width:20, height:20, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:900, border:`2px solid ${pm.c}`
+                }}>✓</div>
+              )}
             </button>
           ))}
         </div>
