@@ -648,6 +648,9 @@ export default function AdminPage() {
                       <span style={{ fontSize: 10, color: DARK.textDim, fontWeight: 800, marginRight: 8 }}>TX ID:</span>
                       <span style={{ fontSize: 12, color: DARK.green, fontWeight: 900, fontFamily: "monospace" }}>{p.transaction_id || "N/A"}</span>
                     </div>
+                    <div style={{ marginTop: 6, opacity: 0.5 }}>
+                      <span style={{ fontSize: 9, color: DARK.textDim, fontWeight: 800 }}>UUID: {p.id}</span>
+                    </div>
                   </div>
                   
                   <div style={{ textAlign: "right", marginLeft: 20 }}>

@@ -103,6 +103,7 @@ function PayScreen({ accum, t, dark, onBack, onPaid }) {
         setIsPending(true);
         setShowTrModal(false);
         localStorage.setItem(`user-phone`, phone);
+        localStorage.setItem(`last-request-id`, res.data.id);
       } else {
         alert("Verification request could not be sent. Please try again or contact support if the issue persists.");
       }
