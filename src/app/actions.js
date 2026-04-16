@@ -124,17 +124,6 @@ export async function getLatestAccumsAction() {
   return results;
 }
 
-export async function checkUnlockStatusAction(phoneNumber, tier) {
-  const { data } = await supabase
-    .from('unlocked_tickets')
-    .select('*')
-    .eq('phone_number', phoneNumber)
-    .eq('tier', tier)
-    .eq('date', new Date().toISOString().slice(0, 10))
-    .maybeSingle();
-
-  return !!data;
-}
 
 // ─── Admin: List ALL tickets (all tiers, all dates) ────────────────────
 export async function getAllAccumsAction() {
