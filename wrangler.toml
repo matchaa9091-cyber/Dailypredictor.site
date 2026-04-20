@@ -1,5 +1,5 @@
 #:schema https://raw.githubusercontent.com/cloudflare/wrangler2/main/packages/wrangler/config-schema.json
 name = "daily-project"
-pages_build_output_dir = ".vercel/output/static"
+pages_build_output_dir = ".worker/output"
 compatibility_date = "2024-04-01"
 compatibility_flags = [ "nodejs_compat" ]
