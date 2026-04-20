@@ -1,0 +1,8 @@
+#:schema https://raw.githubusercontent.com/cloudflare/wrangler2/main/packages/wrangler/config-schema.json
+name = "daily-project"
+compatibility_date = "2024-04-01"
+compatibility_flags = [ "nodejs_compat" ]
+
+[vars]
+# You can also move your environment variables here if you prefer, 
+# but keeping them in the Cloudflare Dashboard is also fine.
