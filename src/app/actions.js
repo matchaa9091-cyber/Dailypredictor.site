@@ -2,14 +2,18 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Use service-role-capable client for server-side writes
-// Falls back to anon key if service key not set (RLS must allow anon inserts)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+// Helper to get supabase client inside functions
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) {
+    throw new Error('Supabase URL or Key is missing');
+  }
+  return createClient(url, key);
+}
 
 export async function saveSingleAccumAction(tier, acc) {
+  const supabase = getSupabase();
   // --- Validate inputs ---
   if (!tier || !acc || !Array.isArray(acc.matches) || acc.matches.length === 0) {
     console.error("[saveSingleAccumAction] Invalid arguments:", { tier, acc });
@@ -79,6 +83,7 @@ export async function saveSingleAccumAction(tier, acc) {
 }
 
 export async function getLatestAccumsAction() {
+  const supabase = getSupabase();
   const tiers = ["free", "vip", "premium"];
   const results = {};
   const today = new Date().toISOString().slice(0, 10);
@@ -127,6 +132,7 @@ export async function getLatestAccumsAction() {
 
 // ─── Admin: List ALL tickets (all tiers, all dates) ────────────────────
 export async function getAllAccumsAction() {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('daily_accums')
     .select(`
@@ -161,6 +167,7 @@ export async function getAllAccumsAction() {
 
 // ─── Admin: Delete a ticket (cascades to match_details) ───────────────
 export async function deleteAccumAction(accumId) {
+  const supabase = getSupabase();
   // Delete match_details first (if no ON DELETE CASCADE)
   await supabase.from('match_details').delete().eq('accum_id', accumId);
   const { error } = await supabase.from('daily_accums').delete().eq('id', accumId);
@@ -173,6 +180,7 @@ export async function deleteAccumAction(accumId) {
 
 // ─── Admin: Update a ticket's tier + matches ──────────────────────────
 export async function updateAccumAction(accumId, tier, matches) {
+  const supabase = getSupabase();
   const toISO = (str) => {
     if (!str) return new Date().toISOString();
     return new Date(str).toISOString();
@@ -224,6 +232,7 @@ export async function updateAccumAction(accumId, tier, matches) {
 }
 
 export async function requestPaymentAction(phone, method, tier, price, trId) {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('payment_requests')
     .insert({
@@ -246,6 +255,7 @@ export async function requestPaymentAction(phone, method, tier, price, trId) {
 }
 
 export async function verifyPaymentAction(requestId) {
+  const supabase = getSupabase();
   // 1. Get the request details
   const { data: req, error: fetchErr } = await supabase
     .from('payment_requests')
@@ -288,6 +298,7 @@ export async function verifyPaymentAction(requestId) {
 }
 
 export async function checkUnlockStatusAction(phone) {
+  const supabase = getSupabase();
   const today = new Date().toISOString().slice(0, 10);
   const { data, error } = await supabase
     .from('unlocked_tickets')
@@ -301,6 +312,7 @@ export async function checkUnlockStatusAction(phone) {
 }
 
 export async function getPaymentRequestsAction() {
+  const supabase = getSupabase();
   const { data, error } = await supabase
     .from('payment_requests')
     .select('*')
