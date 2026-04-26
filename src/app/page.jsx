@@ -610,7 +610,21 @@ export default function App() {
           </div>
         )}
 
-        <p style={{ textAlign: "center", fontSize: 11, color: t.textDim, lineHeight: 1.8, fontWeight: 800, padding: "0 15px", marginTop: 30 }}>⚠️ Tickets are for entertainment and info only. Please play responsibly. 18+</p>
+        <div style={{ 
+          marginTop: 40, padding: "20px", 
+          background: dark ? "rgba(255,85,85,0.05)" : "rgba(255,85,85,0.03)", 
+          border: `1px solid ${dark ? "rgba(255,85,85,0.2)" : "rgba(255,85,85,0.15)"}`, 
+          borderRadius: 16, textAlign: "center" 
+        }}>
+          <div style={{ fontSize: 11, color: "#FF5555", fontWeight: 900, letterSpacing: 1.5, marginBottom: 10 }}>⚠️ LEGAL DISCLAIMER & RESPONSIBLE GAMBLING</div>
+          <p style={{ fontSize: 11, color: t.textDim, lineHeight: 1.8, fontWeight: 800, margin: 0 }}>
+            Daily Predictor UG does not encourage, host, or conduct any betting or gambling activities on this website. 
+            All analysis, picks, and updates are provided for <strong>informational and entertainment purposes only</strong>. 
+            Betting decisions are made at your own personal choice and risk. <br/><br/>
+            Betting can be addictive and psychologically harmful. This service is strictly <strong>not recommended</strong> for persons under the age of 18. 
+            If you choose to gamble, please <strong>bet responsibly</strong>.
+          </p>
+        </div>
 
         <div style={{ marginTop: 50, paddingTop: 30, borderTop: `1.5px solid ${t.border}`, textAlign: "center" }}>
           <h2 style={{ fontFamily: "'Russo One',sans-serif", fontSize: 18, color: t.text, marginBottom: 10 }}>About Daily Predictor UG</h2>
