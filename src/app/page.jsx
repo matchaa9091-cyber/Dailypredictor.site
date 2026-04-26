@@ -452,6 +452,81 @@ function AccumCard({ accum, dark, t }) {
   );
 }
 
+function ResultTicker({ t, dark }) {
+  const results = [
+    { status: 'win', odds: '3.85', label: 'VIP SAFE' },
+    { status: 'loss', label: 'VIP BIG' },
+    { status: 'win', odds: '5.20', label: 'PREMIUM' },
+    { status: 'win', odds: '2.40', label: 'FREE' },
+    { status: 'loss', label: 'VIP SAFE' },
+    { status: 'win', odds: '8.15', label: 'VIP BIG' },
+    { status: 'win', odds: '3.10', label: 'PREMIUM' },
+    { status: 'loss', label: 'FREE' },
+  ];
+
+  // Double the items for seamless scrolling
+  const items = [...results, ...results];
+
+  return (
+    <div style={{ 
+      width: "100vw", 
+      marginLeft: "calc(-50vw + 50%)", 
+      background: dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+      borderTop: `1px solid ${t.border}`,
+      borderBottom: `1px solid ${t.border}`,
+      padding: "12px 0",
+      overflow: "hidden",
+      margin: "20px 0",
+      userSelect: "none",
+      position: "relative"
+    }}>
+      <div style={{ 
+        display: "flex", 
+        width: "max-content",
+        animation: "marquee 40s linear infinite",
+        gap: 15,
+        paddingLeft: 15
+      }}>
+        {items.map((res, i) => (
+          <div key={i} style={{ 
+            display: "flex", 
+            alignItems: "center", 
+            gap: 10, 
+            background: dark ? "rgba(255,255,255,0.03)" : "#fff",
+            border: `1.5px solid ${t.border}`,
+            padding: "8px 16px",
+            borderRadius: 30,
+            whiteSpace: "nowrap",
+            boxShadow: dark ? "none" : "0 2px 8px rgba(0,0,0,0.04)"
+          }}>
+            <span style={{ fontSize: 9, fontWeight: 900, color: t.textDim, letterSpacing: 1.5, textTransform: "uppercase" }}>{res.label}</span>
+            <div style={{ height: 16, width: 1.5, background: t.border }} />
+            {res.status === 'win' ? (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ 
+                  width: 20, height: 20, borderRadius: "50%", background: "#00D45E", 
+                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#000",
+                  boxShadow: "0 0 10px rgba(0,212,94,0.4)" 
+                }}>✓</div>
+                <span style={{ fontFamily: "'Russo One',sans-serif", fontSize: 14, color: "#00D45E", letterSpacing: 0.5 }}>{res.odds} <span style={{fontSize: 9}}>ODDS</span></span>
+              </div>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div style={{ 
+                   width: 20, height: 20, borderRadius: "50%", background: "rgba(255,85,85,0.1)", 
+                   display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#FF5555",
+                   border: "1.5px solid rgba(255,85,85,0.2)"
+                }}>✕</div>
+                <span style={{ fontSize: 11, fontWeight: 900, color: "#FF5555", opacity: 0.8, letterSpacing: 0.5 }}>LOST</span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── ROOT APP ─────────────────────────────────────────────────────────────────
 
 export default function App() {
@@ -492,6 +567,7 @@ export default function App() {
             <span style={{ fontSize: 12, color: "#00D45E", fontWeight: 900, letterSpacing: 1.5 }}>📅 {new Date().toLocaleDateString("en-UG", { weekday: "long", day: "numeric", month: "long" })}</span>
           </div>
           <h1 style={{ fontFamily: "'Russo One',sans-serif", fontSize: 26, color: t.text, letterSpacing: 0.5, marginBottom: 8 }}>PRO ANALYZED <span style={{ color: "#00D45E" }}>VIP TICKETS</span></h1>
+          <ResultTicker t={t} dark={dark} />
           <p style={{ fontSize: 14, color: t.textDim, lineHeight: 1.6, fontWeight: 900 }}>Expertly researched picks for today</p>
         </div>
 
