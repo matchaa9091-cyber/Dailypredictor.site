@@ -610,6 +610,20 @@ export default function App() {
           </div>
         )}
 
+        <div style={{ marginTop: 50, paddingTop: 30, borderTop: `1.5px solid ${t.border}`, textAlign: "center" }}>
+          <h2 style={{ fontFamily: "'Russo One',sans-serif", fontSize: 18, color: t.text, marginBottom: 10 }}>About Daily Predictor UG</h2>
+          <p style={{ fontSize: 13, color: t.textDim, lineHeight: 1.6, fontWeight: 800, marginBottom: 20 }}>
+            Stop betting on gut feelings. At Daily Predictor UG, we do the heavy lifting for you.
+            We compile data and expert analysis from the world's leading sports platforms to transform
+            complex performance metrics and advanced football statistics into clear, actionable daily tickets.
+            Whether it’s an obscure league or the Champions League, we give Ugandan fans the expert insight
+            they need to stay ahead of the game.
+          </p>
+          <div style={{ fontSize: 12, color: t.textDim, fontWeight: 900 }}>
+            Powered by <span style={{ color: "#00D45E" }}>Metric Data Insights</span>
+          </div>
+        </div>
+
         <div style={{ 
           marginTop: 40, padding: "20px", 
           background: dark ? "rgba(255,85,85,0.05)" : "rgba(255,85,85,0.03)", 
@@ -624,20 +638,6 @@ export default function App() {
             Betting can be addictive and psychologically harmful. This service is strictly <strong>not recommended</strong> for persons under the age of 18. 
             If you choose to gamble, please <strong>bet responsibly</strong>.
           </p>
-        </div>
-
-        <div style={{ marginTop: 50, paddingTop: 30, borderTop: `1.5px solid ${t.border}`, textAlign: "center" }}>
-          <h2 style={{ fontFamily: "'Russo One',sans-serif", fontSize: 18, color: t.text, marginBottom: 10 }}>About Daily Predictor UG</h2>
-          <p style={{ fontSize: 13, color: t.textDim, lineHeight: 1.6, fontWeight: 800, marginBottom: 20 }}>
-            Stop betting on gut feelings. At Daily Predictor UG, we do the heavy lifting for you.
-            We compile data and expert analysis from the world's leading sports platforms to transform
-            complex performance metrics and advanced football statistics into clear, actionable daily tickets.
-            Whether it’s an obscure league or the Champions League, we give Ugandan fans the expert insight
-            they need to stay ahead of the game.
-          </p>
-          <div style={{ fontSize: 12, color: t.textDim, fontWeight: 900 }}>
-            Powered by <span style={{ color: "#00D45E" }}>Metric Data Insights</span>
-          </div>
         </div>
       </div>
 
