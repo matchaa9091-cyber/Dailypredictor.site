@@ -469,10 +469,10 @@ function ResultTicker({ t, dark }) {
 
   const getTierConfig = (label) => {
     switch (label) {
-      case 'FREE': return { bg: "#00D45E", text: "#000" };
-      case 'VIP SAFE': return { bg: "#F5C842", text: "#000" };
-      case 'VIP BIG': return { bg: "#9D4EDD", text: "#fff" };
-      default: return { bg: t.surface, text: t.text };
+      case 'FREE': return { bg: "rgba(0, 212, 94, 0.15)", border: "#00D45E", text: "#00D45E" };
+      case 'VIP SAFE': return { bg: "rgba(245, 200, 66, 0.15)", border: "#F5C842", text: "#F5C842" };
+      case 'VIP BIG': return { bg: "rgba(157, 78, 221, 0.15)", border: "#9D4EDD", text: "#9D4EDD" };
+      default: return { bg: t.surface, border: t.border, text: t.text };
     }
   };
 
@@ -504,19 +504,19 @@ function ResultTicker({ t, dark }) {
               alignItems: "center", 
               gap: 10, 
               background: cfg.bg,
-              border: `1.5px solid ${dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)"}`,
-              padding: "6px 14px",
+              border: `1.5px solid ${cfg.border}33`,
+              padding: "6px 16px",
               borderRadius: 30,
               whiteSpace: "nowrap",
-              boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+              backdropFilter: "blur(4px)"
             }}>
               <span style={{ fontSize: 10, fontWeight: 900, color: cfg.text, letterSpacing: 1, textTransform: "uppercase" }}>{res.label}</span>
-              <div style={{ height: 14, width: 1.5, background: `${cfg.text}33` }} />
+              <div style={{ height: 14, width: 1.5, background: `${cfg.text}22` }} />
               {res.status === 'win' ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <div style={{ 
                     width: 18, height: 18, borderRadius: "50%", background: cfg.text, 
-                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: cfg.bg,
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: dark ? "#000" : "#fff",
                   }}>✓</div>
                   <span style={{ fontFamily: "'Russo One',sans-serif", fontSize: 13, color: cfg.text, letterSpacing: 0.5 }}>{res.odds} <span style={{fontSize: 9}}>ODDS</span></span>
                 </div>
