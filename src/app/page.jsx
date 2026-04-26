@@ -515,19 +515,19 @@ function ResultTicker({ t, dark }) {
               {res.status === 'win' ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <div style={{ 
-                    width: 18, height: 18, borderRadius: "50%", background: cfg.text, 
-                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: dark ? "#000" : "#fff",
+                    width: 18, height: 18, borderRadius: "50%", background: "#00D45E", 
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#000",
                   }}>✓</div>
-                  <span style={{ fontFamily: "'Russo One',sans-serif", fontSize: 13, color: cfg.text, letterSpacing: 0.5 }}>{res.odds} <span style={{fontSize: 9}}>ODDS</span></span>
+                  <span style={{ fontFamily: "'Russo One',sans-serif", fontSize: 13, color: "#00D45E", letterSpacing: 0.5 }}>{res.odds} <span style={{fontSize: 9}}>ODDS</span></span>
                 </div>
               ) : (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <div style={{ 
-                     width: 18, height: 18, borderRadius: "50%", background: `${cfg.text}22`, 
-                     display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: cfg.text,
-                     border: `1px solid ${cfg.text}44`
+                     width: 18, height: 18, borderRadius: "50%", background: "rgba(255,85,85,0.1)", 
+                     display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: "#FF5555",
+                     border: "1px solid rgba(255,85,85,0.4)"
                   }}>✕</div>
-                  <span style={{ fontSize: 10, fontWeight: 900, color: cfg.text, opacity: 0.8, letterSpacing: 0.5 }}>LOST</span>
+                  <span style={{ fontSize: 10, fontWeight: 900, color: "#FF5555", letterSpacing: 0.5 }}>LOST</span>
                 </div>
               )}
             </div>
