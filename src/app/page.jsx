@@ -478,16 +478,19 @@ function ResultTicker({ t, dark }) {
 
   return (
     <div style={{ 
-      width: "100vw", 
-      marginLeft: "calc(-50vw + 50%)", 
+      position: "relative",
+      left: "50%",
+      right: "50%",
+      marginLeft: "-50vw",
+      marginRight: "-50vw",
+      width: "100vw",
       background: dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
       borderTop: `1px solid ${t.border}`,
       borderBottom: `1px solid ${t.border}`,
       padding: "12px 0",
       overflow: "hidden",
       margin: "20px 0",
-      userSelect: "none",
-      position: "relative"
+      userSelect: "none"
     }}>
       <div style={{ 
         display: "flex", 
