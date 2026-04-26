@@ -578,6 +578,17 @@ export default function App() {
             <span style={{ fontSize: 12, color: "#00D45E", fontWeight: 900, letterSpacing: 1.5 }}>📅 {new Date().toLocaleDateString("en-UG", { weekday: "long", day: "numeric", month: "long" })}</span>
           </div>
           <h1 style={{ fontFamily: "'Russo One',sans-serif", fontSize: 26, color: t.text, letterSpacing: 0.5, marginBottom: 8 }}>PRO ANALYZED <span style={{ color: "#00D45E" }}>VIP TICKETS</span></h1>
+          
+          <div style={{ 
+            display: "inline-flex", alignItems: "center", gap: 6, 
+            marginTop: 15, marginBottom: -10,
+            fontSize: 10, color: t.textDim, fontWeight: 900, letterSpacing: 1.5, 
+            textTransform: "uppercase", opacity: 0.8
+          }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#00D45E", animation: "pulse 2s infinite" }} />
+            WEEKLY PERFORMANCE TRACKER
+          </div>
+
           <ResultTicker t={t} dark={dark} />
           <p style={{ fontSize: 14, color: t.textDim, lineHeight: 1.6, fontWeight: 900 }}>Expertly researched picks for today</p>
         </div>
