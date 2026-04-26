@@ -3,8 +3,8 @@ export default function robots() {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: '/admin/', // Keep admin pages private
+      disallow: '/internal/', // Keep admin panel hidden from crawlers
     },
-    sitemap: 'https://dailypredictor.site/sitemap.xml',
+    sitemap: 'https://dailypredictorug.afrozex.com/sitemap.xml',
   };
 }

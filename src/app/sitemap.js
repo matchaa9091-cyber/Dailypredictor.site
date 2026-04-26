@@ -1,7 +1,7 @@
 export default function sitemap() {
   return [
     {
-      url: 'https://dailypredictor.site',
+      url: 'https://dailypredictorug.afrozex.com',
       lastModified: new Date(),
       changeFrequency: 'daily',
       priority: 1,

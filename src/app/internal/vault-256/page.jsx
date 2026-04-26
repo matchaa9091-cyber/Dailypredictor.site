@@ -299,7 +299,7 @@ function SmsLogsTab() {
       <div style={{ marginBottom: 20, padding: 14, background: "rgba(59,158,255,0.08)", border: `1px solid ${DARK.blue}33`, borderRadius: 10 }}>
         <div style={{ fontSize: 10, color: DARK.blue, fontWeight: 900, letterSpacing: 1, marginBottom: 6 }}>📡 WEBHOOK ENDPOINT</div>
         <code style={{ fontSize: 11, color: DARK.text, fontFamily: "monospace", wordBreak: "break-all" }}>
-          POST https://dailypredictor.site/api/v1/momo-webhook
+          POST https://dailypredictorug.afrozex.com/api/v1/momo-webhook
         </code>
         <div style={{ fontSize: 10, color: DARK.textDim, marginTop: 6 }}>
           Key: <code style={{ color: DARK.amber }}>Danvid_API_Key_256</code> — Use SMS Forwarder app on your phone

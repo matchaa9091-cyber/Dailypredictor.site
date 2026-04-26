@@ -15,13 +15,13 @@ export const metadata = {
   openGraph: {
     title: "Daily Predictor UG - Expert Football Analysis & Daily Tickets",
     description: "Get the best football match analysis and daily prediction tickets in Uganda.",
-    url: "https://dailypredictor.site",
+    url: "https://dailypredictorug.afrozex.com",
     siteName: "Daily Predictor UG",
     locale: "en_UG",
     type: "website",
     images: [
       {
-        url: "https://dailypredictor.site/logo.png",
+        url: "https://dailypredictorug.afrozex.com/logo.png",
         width: 512,
         height: 512,
         alt: "Daily Predictor UG Logo",
