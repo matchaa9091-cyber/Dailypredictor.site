@@ -6,36 +6,55 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-// SECRET KEY for the phone app to authenticate
+// Secret key used to verify requests coming from httpsms.com webhook
+// Set this in your httpsms.com webhook headers as: X-Api-Key: Danvid_API_Key_256
 const SECRET_WEBHOOK_KEY = "Danvid_API_Key_256";
 
 export async function POST(req) {
   try {
-    const body = await req.json();
-    const { sender, content, key } = body;
-
-    // 1. Security Check
-    if (key !== SECRET_WEBHOOK_KEY) {
+    // ── Security: check header key sent by httpsms.com ──────────────────────
+    const headerKey = req.headers.get('x-api-key') || req.headers.get('authorization');
+    if (headerKey !== SECRET_WEBHOOK_KEY) {
+      console.warn("[Webhook] ⛔ Unauthorized attempt blocked");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!content || !sender) {
-      return NextResponse.json({ error: "Missing data" }, { status: 400 });
+    const body = await req.json();
+
+    // ── Parse httpsms.com payload format ────────────────────────────────────
+    // httpsms.com sends: { event_type, data: { content, from, to, ... } }
+    let content = "";
+    let sender = "";
+
+    if (body?.data?.content) {
+      // httpsms.com format
+      content = body.data.content;
+      sender = body.data.from || body.data.contact || "MTN/AIRTEL";
+    } else if (body?.content) {
+      // Direct/manual format (for testing)
+      content = body.content;
+      sender = body.sender || "UNKNOWN";
     }
 
-    console.log(`[Webhook] 📩 SMS Received from ${sender}: ${content}`);
+    if (!content) {
+      return NextResponse.json({ error: "No SMS content found in payload" }, { status: 400 });
+    }
 
-    // 2. Parse SMS for Transaction ID and Amount
-    // Regex for MTN/Airtel Transaction IDs (Usually 10-12 chars, letters and numbers)
-    // Examples: "Trans. ID: 12345678" or "ID: XYZ123"
-    const idMatch = content.match(/(ID|Trans\. ID|Transaction ID|Ref)[:\s]+([A-Z0-9]+)/i);
-    const trId = idMatch ? idMatch[2].trim() : null;
+    console.log(`[Webhook] 📩 SMS from ${sender}: ${content.substring(0, 80)}...`);
 
-    // Regex for Amount: "UGX 1,000" or "UGX1000"
+    // ── RegEx: Extract Transaction ID ────────────────────────────────────────
+    // MTN MoMo format:  "...Trans. ID: 12345678901..."
+    // Airtel format:    "...Ref: ABCD12345..."
+    const idMatch = content.match(
+      /(?:Trans(?:action)?\.?\s*ID|Ref(?:erence)?|TxID)[:\s]+([A-Z0-9]{6,15})/i
+    );
+    const trId = idMatch ? idMatch[1].trim() : null;
+
+    // ── RegEx: Extract Amount ────────────────────────────────────────────────
     const amountMatch = content.match(/UGX\s*([\d,]+)/i);
     const amount = amountMatch ? parseInt(amountMatch[1].replace(/,/g, '')) : null;
 
-    // 3. Save to Logs
+    // ── Log the SMS to database ──────────────────────────────────────────────
     const { data: logData, error: logError } = await supabase
       .from('sms_logs')
       .insert({
@@ -46,14 +65,19 @@ export async function POST(req) {
       .select()
       .single();
 
-    if (logError) throw logError;
-
-    if (!trId) {
-      return NextResponse.json({ message: "No Transaction ID found in SMS", trId, amount });
+    if (logError) {
+      console.error("[Webhook] Log insert error:", logError);
+      // Don't throw — still try to match
     }
 
-    // 4. Match with Payment Requests
-    // We look for a pending request with this Transaction ID
+    if (!trId) {
+      console.log("[Webhook] No Transaction ID found — SMS logged as ignored.");
+      return NextResponse.json({ message: "SMS logged. No Transaction ID detected.", amount });
+    }
+
+    console.log(`[Webhook] 🔍 Found Transaction ID: ${trId}, Amount: UGX ${amount}`);
+
+    // ── Match against pending payment requests ───────────────────────────────
     const { data: request, error: reqError } = await supabase
       .from('payment_requests')
       .select('*')
@@ -62,46 +86,44 @@ export async function POST(req) {
       .maybeSingle();
 
     if (reqError) {
-      console.error("[Webhook] Matching error:", reqError);
+      console.error("[Webhook] DB match error:", reqError);
     }
 
     if (request) {
-      console.log(`[Webhook] ✅ Match Found! Request #${request.id}`);
+      console.log(`[Webhook] ✅ MATCH! Auto-verifying request for ${request.phone_number} (${request.tier})`);
 
-      // 5. Update Statuses
-      // Mark SMS as matched (ignore errors if column doesn't exist yet)
-      try {
-        await supabase.from('sms_logs').update({ 
-          status: 'matched'
-        }).eq('id', logData.id);
-      } catch (e) {}
-
-      // Verify the payment
       const today = new Date().toISOString().slice(0, 10);
-      
-      // Update request status
-      await supabase.from('payment_requests').update({ 
-        status: 'verified'
-      }).eq('id', request.id);
 
-      // Create the unlock entry
+      // Mark SMS log as matched
+      if (logData?.id) {
+        await supabase.from('sms_logs').update({ status: 'matched' }).eq('id', logData.id);
+      }
+
+      // Verify the payment request
+      await supabase.from('payment_requests')
+        .update({ status: 'verified' })
+        .eq('id', request.id);
+
+      // Unlock the ticket for the customer
       await supabase.from('unlocked_tickets').insert({
         phone_number: request.phone_number,
         tier: request.tier,
         date: today
       });
 
-      return NextResponse.json({ 
-        success: true, 
-        message: "Payment automatically verified and ticket unlocked!",
+      return NextResponse.json({
+        success: true,
+        message: `Ticket unlocked for ${request.phone_number}`,
         trId,
-        amount
+        amount,
+        tier: request.tier
       });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      message: "SMS logged but no matching pending request found yet.",
+    // No match yet — SMS is stored, will match when user submits their TX ID
+    return NextResponse.json({
+      success: true,
+      message: "SMS logged. No matching pending request found for this Transaction ID.",
       trId,
       amount
     });
