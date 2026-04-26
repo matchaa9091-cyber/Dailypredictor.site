@@ -558,7 +558,7 @@ export default function App() {
   }, []);
 
   return (
-    <div style={{ background: t.bg, color: t.text, minHeight: "100vh", fontFamily: "'Outfit',sans-serif", fontWeight: 800 }}>
+    <div style={{ background: t.bg, color: t.text, minHeight: "100vh", fontFamily: "'Outfit',sans-serif", fontWeight: 800, overflowX: "hidden" }}>
       <nav style={{ position: "sticky", top: 0, zIndex: 99, background: dark ? "rgba(0,0,0,0.96)" : "rgba(242,255,245,0.96)", backdropFilter: "blur(20px)", borderBottom: `1.5px solid ${t.border}`, padding: "12px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <img src="/logo.png" alt="Logo" style={{ width: 38, height: 38, borderRadius: 11, boxShadow: "0 0 20px #00D45E66", objectFit: "cover" }} />
