@@ -478,26 +478,25 @@ function ResultTicker({ t, dark }) {
 
   return (
     <div style={{ 
+      width: "100vw", 
       position: "relative",
       left: "50%",
       right: "50%",
       marginLeft: "-50vw",
       marginRight: "-50vw",
-      width: "100vw",
-      background: dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)",
+      background: dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.03)",
       borderTop: `1px solid ${t.border}`,
       borderBottom: `1px solid ${t.border}`,
       padding: "12px 0",
       overflow: "hidden",
-      margin: "20px 0",
-      userSelect: "none"
+      margin: "25px 0",
+      userSelect: "none",
     }}>
       <div style={{ 
         display: "flex", 
         width: "max-content",
-        animation: "marquee 45s linear infinite",
-        gap: 15,
-        paddingLeft: 15
+        animation: "marquee 35s linear infinite",
+        gap: 20
       }}>
         {items.map((res, i) => {
           const cfg = getTierConfig(res.label);
