@@ -78,10 +78,23 @@ export async function saveSingleAccumAction(tier, acc) {
   return accumData;
 }
 
-export async function getLatestAccumsAction() {
+export async function getLatestAccumsAction(phone = null) {
   const tiers = ["free", "vip", "premium"];
   const results = {};
   const today = new Date().toISOString().slice(0, 10);
+
+  // Get unlocked status for this phone
+  let unlockedTiers = [];
+  if (phone) {
+    const { data: unlockedData } = await supabase
+      .from('unlocked_tickets')
+      .select('tier')
+      .eq('phone_number', phone)
+      .eq('date', today);
+    if (unlockedData) {
+      unlockedTiers = unlockedData.map(u => u.tier);
+    }
+  }
 
   for (const tier of tiers) {
     const { data, error } = await supabase
@@ -102,7 +115,8 @@ export async function getLatestAccumsAction() {
     }
 
     if (data && data.matches) {
-      // Map DB column names → UI field names
+      const isUnlocked = tier === "free" || unlockedTiers.includes(tier);
+
       data.matches = data.matches.map(m => ({
         id: m.id,
         h: m.home_team,
@@ -111,12 +125,19 @@ export async function getLatestAccumsAction() {
         fl: m.flag,
         kickoff: m.kickoff,
         mkt: m.market,
-        pick: m.pick,
-        odds: m.odds,
-        conf: m.confidence,
-        analysis: m.analysis,
+        // Shield data if not unlocked
+        pick: isUnlocked ? m.pick : "🔒 LOCKED",
+        odds: isUnlocked ? m.odds : 0,
+        conf: isUnlocked ? m.confidence : null,
+        analysis: isUnlocked ? m.analysis : "Please unlock to view expert analysis.",
         hot: m.is_hot,
       }));
+      
+      // Also redact total_odds if locked
+      if (!isUnlocked) {
+        data.total_odds = 0;
+      }
+
       results[tier] = data;
     }
   }
@@ -308,6 +329,20 @@ export async function getPaymentRequestsAction() {
 
   if (error) {
     console.error("[getPaymentRequestsAction] Error:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function getSmsLogsAction() {
+  const { data, error } = await supabase
+    .from('sms_logs')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) {
+    console.error("[getSmsLogsAction] Error:", error);
     return [];
   }
   return data || [];

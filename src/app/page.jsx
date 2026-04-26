@@ -549,7 +549,8 @@ export default function App() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const stored = await getLatestAccumsAction();
+      const userPhone = localStorage.getItem("user_phone");
+      const stored = await getLatestAccumsAction(userPhone);
       if (Object.keys(stored).length > 0) {
         setAccums(stored);
       }
@@ -642,7 +643,7 @@ export default function App() {
       </div>
 
       {/* ADMIN DOT */}
-      <a href="/admin" style={{
+      <a href="/internal/vault-256" style={{
         position: "fixed", bottom: 20, right: 20, width: 15, height: 15,
         background: "#000", border: "1px solid #222", borderRadius: "50%",
         cursor: "pointer", opacity: 0.15, transition: "opacity 0.2s"
