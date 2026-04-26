@@ -140,9 +140,16 @@ export async function POST(req) {
 // ── Debugging Help: Visit this URL in your browser to see if the table is working
 export async function GET(req) {
   try {
+    const { error: insertError } = await supabase.from('sms_logs').insert({
+      content: 'Diagnostic Test',
+      sender: 'SYSTEM',
+      status: 'ignored'
+    });
+
     const { data: logs, error: logsError } = await supabase.from('sms_logs').select('*').order('created_at', { ascending: false }).limit(10);
     return NextResponse.json({ 
       status: "Webhook is reachable", 
+      insert_test: insertError ? "ERROR: " + insertError.message + " (Code: " + insertError.code + ")" : "SUCCESS",
       table_status: logsError ? "ERROR: " + logsError.message : "SUCCESS",
       recent_logs: logs || []
     });
