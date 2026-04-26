@@ -12,9 +12,12 @@ const SECRET_WEBHOOK_KEY = "Danvid_API_Key_256";
 
 export async function POST(req) {
   try {
-    // ── Security: check header key sent by httpsms.com ──────────────────────
+    // ── Security: check header or query key ──────────────────────
+    const { searchParams } = new URL(req.url);
+    const queryKey = searchParams.get('key');
     const headerKey = req.headers.get('x-api-key') || req.headers.get('authorization');
-    if (headerKey !== SECRET_WEBHOOK_KEY) {
+    
+    if (headerKey !== SECRET_WEBHOOK_KEY && queryKey !== SECRET_WEBHOOK_KEY) {
       console.warn("[Webhook] ⛔ Unauthorized attempt blocked");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -44,9 +47,9 @@ export async function POST(req) {
 
     // ── RegEx: Extract Transaction ID ────────────────────────────────────────
     // MTN MoMo format:  "...Trans. ID: 12345678901..."
-    // Airtel format:    "...Ref: ABCD12345..."
+    // Airtel format:    "...Ref: ABCD12345..." or "...ID: 40266720157..."
     const idMatch = content.match(
-      /(?:Trans(?:action)?\.?\s*ID|Ref(?:erence)?|TxID)[:\s]+([A-Z0-9]{6,15})/i
+      /(?:Trans(?:action)?\.?\s*ID|Ref(?:erence)?|TxID|\bID\b)[:\s]+([A-Z0-9]{6,15})/i
     );
     const trId = idMatch ? idMatch[1].trim() : null;
 
