@@ -114,15 +114,29 @@ function PayScreen({ accum, t, dark, onBack, onPaid }) {
     setPaying(false);
   };
 
+  // Poll for auto-verification status when pending
+  useEffect(() => {
+    if (!isPending) return;
+
+    const interval = setInterval(async () => {
+      const unlocked = await checkUnlockStatusAction(phone);
+      if (unlocked) {
+        onPaid(phone);
+        clearInterval(interval);
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [isPending, phone, onPaid]);
+
   if (isPending) {
     return (
       <div style={{padding:"40px 20px", textAlign:"center", animation:"fadeUp 0.3s ease"}}>
-        <div style={{fontSize:40, marginBottom:20}}>⏳</div>
-        <div style={{fontFamily:"'Russo One',sans-serif", fontSize:20, color:cfg.color, marginBottom:10}}>VERIFICATION PENDING</div>
+        <div style={{fontSize:42, marginBottom:20, animation: "spin 1.5s linear infinite", display: "inline-block"}}>⚙️</div>
+        <div style={{fontFamily:"'Russo One',sans-serif", fontSize:20, color:cfg.color, marginBottom:10}}>VERIFYING PAYMENT</div>
         <p style={{fontSize:13, color:t.textDim, lineHeight:1.6, fontWeight:800}}>
-          We received your request with ID <strong>{trId}</strong>. <br/>
-          Our team is manually verifying your payment now. <br/>
-          <span style={{color:t.text}}>The ticket will unlock automatically usually within 5-15 minutes.</span>
+          Auto-verifying transaction ID <strong>{trId}</strong>... <br/>
+          <span style={{color:t.text}}>Please wait, your ticket will unlock securely in a few moments.</span>
         </p>
         <button onClick={onBack} style={{marginTop:20, background:t.surface, border:`1px solid ${t.border}`, borderRadius:10, padding:"10px 20px", color:t.textDim, fontWeight:800, cursor:"pointer"}}>Close & Wait</button>
       </div>
