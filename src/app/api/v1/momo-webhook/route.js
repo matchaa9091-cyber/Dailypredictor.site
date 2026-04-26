@@ -133,6 +133,20 @@ export async function POST(req) {
 
   } catch (err) {
     console.error("[Webhook Error]:", err);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error", details: err.message }, { status: 500 });
+  }
+}
+
+// ── Debugging Help: Visit this URL in your browser to see if the table is working
+export async function GET(req) {
+  try {
+    const { data: logs, error: logsError } = await supabase.from('sms_logs').select('*').order('created_at', { ascending: false }).limit(10);
+    return NextResponse.json({ 
+      status: "Webhook is reachable", 
+      table_status: logsError ? "ERROR: " + logsError.message : "SUCCESS",
+      recent_logs: logs || []
+    });
+  } catch (err) {
+    return NextResponse.json({ status: "Error", details: err.message });
   }
 }
