@@ -454,18 +454,27 @@ function AccumCard({ accum, dark, t }) {
 
 function ResultTicker({ t, dark }) {
   const results = [
+    { status: 'win', odds: '2.40', label: 'FREE' },
     { status: 'win', odds: '3.85', label: 'VIP SAFE' },
     { status: 'loss', label: 'VIP BIG' },
-    { status: 'win', odds: '5.20', label: 'PREMIUM' },
-    { status: 'win', odds: '2.40', label: 'FREE' },
+    { status: 'win', odds: '5.20', label: 'VIP BIG' },
     { status: 'loss', label: 'VIP SAFE' },
+    { status: 'win', odds: '2.15', label: 'FREE' },
     { status: 'win', odds: '8.15', label: 'VIP BIG' },
-    { status: 'win', odds: '3.10', label: 'PREMIUM' },
     { status: 'loss', label: 'FREE' },
   ];
 
   // Double the items for seamless scrolling
   const items = [...results, ...results];
+
+  const getTierConfig = (label) => {
+    switch (label) {
+      case 'FREE': return { bg: "#00D45E", text: "#000" };
+      case 'VIP SAFE': return { bg: "#F5C842", text: "#000" };
+      case 'VIP BIG': return { bg: "#9D4EDD", text: "#fff" };
+      default: return { bg: t.surface, text: t.text };
+    }
+  };
 
   return (
     <div style={{ 
@@ -483,45 +492,47 @@ function ResultTicker({ t, dark }) {
       <div style={{ 
         display: "flex", 
         width: "max-content",
-        animation: "marquee 40s linear infinite",
+        animation: "marquee 45s linear infinite",
         gap: 15,
         paddingLeft: 15
       }}>
-        {items.map((res, i) => (
-          <div key={i} style={{ 
-            display: "flex", 
-            alignItems: "center", 
-            gap: 10, 
-            background: dark ? "rgba(255,255,255,0.03)" : "#fff",
-            border: `1.5px solid ${t.border}`,
-            padding: "8px 16px",
-            borderRadius: 30,
-            whiteSpace: "nowrap",
-            boxShadow: dark ? "none" : "0 2px 8px rgba(0,0,0,0.04)"
-          }}>
-            <span style={{ fontSize: 9, fontWeight: 900, color: t.textDim, letterSpacing: 1.5, textTransform: "uppercase" }}>{res.label}</span>
-            <div style={{ height: 16, width: 1.5, background: t.border }} />
-            {res.status === 'win' ? (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ 
-                  width: 20, height: 20, borderRadius: "50%", background: "#00D45E", 
-                  display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#000",
-                  boxShadow: "0 0 10px rgba(0,212,94,0.4)" 
-                }}>✓</div>
-                <span style={{ fontFamily: "'Russo One',sans-serif", fontSize: 14, color: "#00D45E", letterSpacing: 0.5 }}>{res.odds} <span style={{fontSize: 9}}>ODDS</span></span>
-              </div>
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                <div style={{ 
-                   width: 20, height: 20, borderRadius: "50%", background: "rgba(255,85,85,0.1)", 
-                   display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, color: "#FF5555",
-                   border: "1.5px solid rgba(255,85,85,0.2)"
-                }}>✕</div>
-                <span style={{ fontSize: 11, fontWeight: 900, color: "#FF5555", opacity: 0.8, letterSpacing: 0.5 }}>LOST</span>
-              </div>
-            )}
-          </div>
-        ))}
+        {items.map((res, i) => {
+          const cfg = getTierConfig(res.label);
+          return (
+            <div key={i} style={{ 
+              display: "flex", 
+              alignItems: "center", 
+              gap: 10, 
+              background: cfg.bg,
+              border: `1.5px solid ${dark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.05)"}`,
+              padding: "6px 14px",
+              borderRadius: 30,
+              whiteSpace: "nowrap",
+              boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
+            }}>
+              <span style={{ fontSize: 10, fontWeight: 900, color: cfg.text, letterSpacing: 1, textTransform: "uppercase" }}>{res.label}</span>
+              <div style={{ height: 14, width: 1.5, background: `${cfg.text}33` }} />
+              {res.status === 'win' ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ 
+                    width: 18, height: 18, borderRadius: "50%", background: cfg.text, 
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: cfg.bg,
+                  }}>✓</div>
+                  <span style={{ fontFamily: "'Russo One',sans-serif", fontSize: 13, color: cfg.text, letterSpacing: 0.5 }}>{res.odds} <span style={{fontSize: 9}}>ODDS</span></span>
+                </div>
+              ) : (
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ 
+                     width: 18, height: 18, borderRadius: "50%", background: `${cfg.text}22`, 
+                     display: "flex", alignItems: "center", justifyContent: "center", fontSize: 11, color: cfg.text,
+                     border: `1px solid ${cfg.text}44`
+                  }}>✕</div>
+                  <span style={{ fontSize: 10, fontWeight: 900, color: cfg.text, opacity: 0.8, letterSpacing: 0.5 }}>LOST</span>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
