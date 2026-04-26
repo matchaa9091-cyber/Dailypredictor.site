@@ -183,12 +183,12 @@ function PayScreen({ accum, t, dark, onBack, onPaid }) {
         {(accum.matches || []).slice(0, 2).map((m,i)=>(
           <div key={i} style={{display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 12px", borderBottom:i < 1 ? `1px solid ${t.border}` : "none"}}>
             <div style={{fontSize:10, fontWeight:900, color:t.text}}>{m.h} v {m.a}</div>
-            <span style={{background:cfg.color, color:cfg.dark?"#000":"#fff", borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:900, filter:"blur(4px)"}}>{Number(m.odds).toFixed(2)}</span>
+            <span style={{background:cfg.color, color:cfg.dark?"#000":"#fff", borderRadius:4, padding:"1px 6px", fontSize:10, fontWeight:900, filter:"blur(4px)"}}>{isNaN(Number(m.odds)) ? m.odds : Number(m.odds).toFixed(2)}</span>
           </div>
         ))}
         <div style={{padding:"6px 12px", background:`${cfg.color}10`, fontSize:10, fontWeight:900, display:"flex", justifyContent:"space-between", color:cfg.color}}>
           <span>TOTAL ODDS</span>
-          <span>{Number(accum.total_odds || accum.totalOdds).toFixed(2)}</span>
+          <span>{Number(accum.total_odds ?? accum.totalOdds ?? 0).toFixed(2)}</span>
         </div>
       </div>
 
@@ -386,7 +386,7 @@ function AccumCard({ accum, dark, t }) {
                     <div style={{ fontSize: 14, fontWeight: 900, color: cfg.color }}>✅ {m.pick}</div>
                   </div>
                   <div style={{ background: cfg.color, color: cfg.dark ? "#000" : "#fff", borderRadius: 8, padding: "8px 14px", textAlign: "center", minWidth: 55 }}>
-                    <div style={{ fontFamily: "'Russo One',sans-serif", fontSize: 20, lineHeight: 1 }}>{Number(m.odds).toFixed(2)}</div>
+                    <div style={{ fontFamily: "'Russo One',sans-serif", fontSize: 20, lineHeight: 1 }}>{isNaN(Number(m.odds)) ? m.odds : Number(m.odds).toFixed(2)}</div>
                     <div style={{ fontSize: 8, letterSpacing: 1, opacity: 0.8, marginTop: 1, fontWeight: 900 }}>ODDS</div>
                   </div>
                 </div>
@@ -411,7 +411,7 @@ function AccumCard({ accum, dark, t }) {
               <div style={{ fontSize: 13, color: t.textDim, fontWeight: 900 }}>{(accum.matches || []).length} Elite Picks</div>
             </div>
             <div style={{ background: `linear-gradient(135deg,${cfg.color},${cfg.color}aa)`, color: cfg.dark ? "#000" : "#fff", borderRadius: 14, padding: "12px 22px", textAlign: "center", boxShadow: `0 8px 20px ${cfg.color}44` }}>
-              <div style={{ fontFamily: "'Russo One',sans-serif", fontSize: 38, lineHeight: 1 }}>{Number(accum.total_odds || accum.totalOdds).toFixed(2)}</div>
+              <div style={{ fontFamily: "'Russo One',sans-serif", fontSize: 38, lineHeight: 1 }}>{Number(accum.total_odds ?? accum.totalOdds ?? 0).toFixed(2)}</div>
               <div style={{ fontSize: 9, letterSpacing: 2, marginTop: 3, opacity: 0.9, fontWeight: 900 }}>TOTAL ODDS</div>
             </div>
           </div>

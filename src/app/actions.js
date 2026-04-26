@@ -127,17 +127,13 @@ export async function getLatestAccumsAction(phone = null) {
         mkt: m.market,
         // Shield data if not unlocked
         pick: isUnlocked ? m.pick : "🔒 LOCKED",
-        odds: isUnlocked ? m.odds : 0,
+        odds: isUnlocked ? m.odds : "🔒",
         conf: isUnlocked ? m.confidence : null,
         analysis: isUnlocked ? m.analysis : "Please unlock to view expert analysis.",
         hot: m.is_hot,
       }));
-      
-      // Also redact total_odds if locked
-      if (!isUnlocked) {
-        data.total_odds = 0;
-      }
 
+      // NOTE: We intentionally DO NOT redact total_odds because seeing the potential win is a marketing feature.
       results[tier] = data;
     }
   }
