@@ -576,7 +576,7 @@ export default function App() {
           <img src="/logo.png" alt="Logo" style={{ width: 38, height: 38, borderRadius: 11, boxShadow: "0 0 20px #00D45E66", objectFit: "cover" }} />
           <div>
             <div style={{ fontFamily: "'Russo One',sans-serif", fontSize: 18, letterSpacing: 1, color: t.text }}>DAILY PREDICTOR<span style={{ color: "#00D45E" }}> UG</span></div>
-            <div style={{ fontSize: 9, color: t.textDim, letterSpacing: 2, textTransform: "uppercase", fontWeight: 900 }}>Metric Data Insights</div>
+            <div style={{ fontSize: 9, color: t.textDim, letterSpacing: 2, textTransform: "uppercase", fontWeight: 900 }}>Afrozex Sports Analysis</div>
           </div>
         </div>
         <button onClick={() => setDark(!dark)} style={{ width: 36, height: 36, borderRadius: "50%", border: `1.5px solid ${t.border}`, background: t.surface, cursor: "pointer", fontSize: 16, display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.3s" }}>
@@ -631,7 +631,7 @@ export default function App() {
             they need to stay ahead of the game.
           </p>
           <div style={{ fontSize: 12, color: t.textDim, fontWeight: 900 }}>
-            Powered by <span style={{ color: "#00D45E" }}>Metric Data Insights</span>
+            Powered by <span style={{ color: "#00D45E" }}>Afrozex Sports Analysis</span>
           </div>
         </div>
 

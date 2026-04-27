@@ -719,6 +719,7 @@ export default function SecretVaultPage() {
     } else {
       setError(true);
       setPass("");
+      window.location.href = "/";
     }
   };
 
