@@ -41,7 +41,7 @@ const inputStyle = {
   fontFamily: "'Outfit', sans-serif",
   fontSize: 14,
   outline: "none",
-  fontWeight: 700,
+  fontWeight: 800,
   boxSizing: "border-box",
 };
 
@@ -556,7 +556,7 @@ function AdminDashboard() {
     : accums.filter((a) => a.tier === filterTier);
 
   return (
-    <div style={{ maxWidth: 660, margin: "0 auto" }}>
+    <div style={{ maxWidth: 660, margin: "0 auto", fontFamily: "'Outfit', sans-serif", fontWeight: 800 }}>
       <h1 style={{ fontFamily: "'Russo One', sans-serif", fontSize: 22, marginBottom: 28, color: DARK.green, letterSpacing: 1 }}>⚡ PREDICTOR ADMIN</h1>
 
       {/* Tab switcher */}
@@ -724,14 +724,14 @@ export default function SecretVaultPage() {
 
   if (isAuth) {
     return (
-      <div style={{ background: DARK.bg, minHeight: "100vh" }}>
+      <div style={{ background: DARK.bg, minHeight: "100vh", fontFamily: "'Outfit', sans-serif", fontWeight: 800 }}>
         <AdminDashboard />
       </div>
     );
   }
 
   return (
-    <div style={{ background: DARK.bg, color: DARK.text, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+    <div style={{ background: DARK.bg, color: DARK.text, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: 20, fontFamily: "'Outfit', sans-serif", fontWeight: 800 }}>
       <div style={{ maxWidth: 360, width: "100%", textAlign: "center", animation: "fadeUp 0.6s ease" }}>
         <div style={{ fontSize: 50, marginBottom: 20 }}>🔒</div>
         <h2 style={{ fontFamily: "'Russo One', sans-serif", fontSize: 20, marginBottom: 10 }}>ADMIN VAULT</h2>
