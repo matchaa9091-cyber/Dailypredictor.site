@@ -54,8 +54,9 @@ export async function POST(req) {
     const trId = idMatch ? idMatch[1].trim().toUpperCase() : null;
 
     // ── RegEx: Extract Amount ────────────────────────────────────────────────
-    const amountMatch = content.match(/UGX\s*([\d,]+)/i);
-    const amount = amountMatch ? parseInt(amountMatch[1].replace(/,/g, '')) : null;
+    const amountMatch = content.match(/(?:UGX|SHS?)\.?\s*([\d,]+)|([\d,]+)\s*(?:UGX|SHS?)/i);
+    const amountStr = amountMatch ? (amountMatch[1] || amountMatch[2]) : null;
+    const amount = amountStr ? parseInt(amountStr.replace(/,/g, '')) : null;
 
     // ── Log the SMS to database ──────────────────────────────────────────────
     const isAmountValid = amount === null || amount >= 1000;
