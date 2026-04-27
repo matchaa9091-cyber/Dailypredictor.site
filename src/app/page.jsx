@@ -563,7 +563,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const userPhone = localStorage.getItem("user_phone");
+      const userPhone = localStorage.getItem("user-phone");
       const stored = await getLatestAccumsAction(userPhone);
       if (Object.keys(stored).length > 0) {
         setAccums(stored);
