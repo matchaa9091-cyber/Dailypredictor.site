@@ -58,12 +58,13 @@ export async function POST(req) {
     const amount = amountMatch ? parseInt(amountMatch[1].replace(/,/g, '')) : null;
 
     // ── Log the SMS to database ──────────────────────────────────────────────
+    const isAmountValid = amount === null || amount >= 1000;
     const { data: logData, error: logError } = await supabase
       .from('sms_logs')
       .insert({
         content,
         sender,
-        status: trId ? 'processing' : 'ignored'
+        status: (trId && isAmountValid) ? 'processing' : 'ignored'
       })
       .select()
       .single();
@@ -76,6 +77,12 @@ export async function POST(req) {
     if (!trId) {
       console.log("[Webhook] No Transaction ID found — SMS logged as ignored.");
       return NextResponse.json({ message: "SMS logged. No Transaction ID detected.", amount });
+    }
+
+    if (!isAmountValid) {
+      console.log(`[Webhook] ⛔ Payment rejected: Low amount (UGX ${amount}). Minimum is 1000.`);
+      await supabase.from('sms_logs').update({ status: 'ignored' }).eq('id', logData?.id);
+      return NextResponse.json({ message: "Payment too low. Minimum 1000 required.", amount });
     }
 
     console.log(`[Webhook] 🔍 Found Transaction ID: ${trId}, Amount: UGX ${amount}`);
