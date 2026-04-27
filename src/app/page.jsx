@@ -611,7 +611,9 @@ export default function App() {
           </div>
         ) : accums && Object.keys(accums).length > 0 ? (
           ["free", "vip", "premium"].map(tier =>
-            accums[tier] && <AccumCard key={tier} accum={accums[tier]} dark={dark} t={t} />
+            accums[tier] && Array.isArray(accums[tier]) && accums[tier].map(acc => (
+              <AccumCard key={acc.id} accum={acc} dark={dark} t={t} />
+            ))
           )
         ) : (
           <div style={{ textAlign: "center", padding: "60px 20px", background: t.surface, borderRadius: 20, border: `1px solid ${t.border}` }}>

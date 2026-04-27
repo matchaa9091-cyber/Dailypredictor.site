@@ -105,36 +105,49 @@ export async function getLatestAccumsAction(phone = null) {
       `)
       .eq('tier', tier)
       .eq('date', today)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .order('created_at', { ascending: false });
 
     if (error) {
       console.error(`[getLatestAccumsAction] Error fetching ${tier}:`, error);
       continue;
     }
 
-    if (data && data.matches) {
-      const isUnlocked = tier === "free" || unlockedTiers.includes(tier);
+    if (data && data.length > 0) {
+      const isUnlocked = tier === "free" || unlockedTiers.length > 0;
+      const now = new Date();
+      
+      const processedTickets = data
+        .filter(ticket => {
+          // Filter out expired tickets (if first_kickoff has passed)
+          const kickTime = new Date(ticket.first_kickoff);
+          return kickTime > now;
+        })
+        .map(ticket => {
+          if (!ticket.matches) return ticket;
 
-      data.matches = data.matches.map(m => ({
-        id: m.id,
-        h: m.home_team,
-        a: m.away_team,
-        lg: m.league,
-        fl: m.flag,
-        kickoff: m.kickoff,
-        mkt: m.market,
-        // Shield data if not unlocked
-        pick: isUnlocked ? m.pick : "🔒 LOCKED",
-        odds: isUnlocked ? m.odds : "🔒",
-        conf: isUnlocked ? m.confidence : null,
-        analysis: isUnlocked ? m.analysis : "Please unlock to view expert analysis.",
-        hot: m.is_hot,
-      }));
+          return {
+            ...ticket,
+            matches: ticket.matches.map(m => ({
+              id: m.id,
+              h: m.home_team,
+              a: m.away_team,
+              lg: m.league,
+              fl: m.flag,
+              kickoff: m.kickoff,
+              mkt: m.market,
+              // Shield data if not unlocked
+              pick: isUnlocked ? m.pick : "🔒 LOCKED",
+              odds: isUnlocked ? m.odds : "🔒",
+              conf: isUnlocked ? m.confidence : null,
+              analysis: isUnlocked ? m.analysis : "Please unlock to view expert analysis.",
+              hot: m.is_hot,
+            }))
+          };
+        });
 
-      // NOTE: We intentionally DO NOT redact total_odds because seeing the potential win is a marketing feature.
-      results[tier] = data;
+      if (processedTickets.length > 0) {
+        results[tier] = processedTickets;
+      }
     }
   }
 
@@ -311,7 +324,8 @@ export async function checkUnlockStatusAction(phone) {
     .select('*')
     .eq('phone_number', phone)
     .eq('date', today)
-    .single();
+    .limit(1)
+    .maybeSingle();
 
   if (error || !data) return false;
   return true;
