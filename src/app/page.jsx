@@ -163,7 +163,7 @@ function PayScreen({ accum, t, dark, onBack, onPaid }) {
             
             <input 
               value={trId} 
-              onChange={e=>setTrId(e.target.value)} 
+              onChange={e=>setTrId(e.target.value.replace(/\D/g, ""))} 
               placeholder="e.g. 192837465..."
               autoFocus
               style={{
