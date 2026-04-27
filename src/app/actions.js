@@ -343,3 +343,51 @@ export async function getSmsLogsAction() {
   }
   return data || [];
 }
+
+export async function getPerformanceResultsAction() {
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const { data, error } = await supabase
+    .from('performance_results')
+    .select('*')
+    .gte('created_at', sevenDaysAgo.toISOString())
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error("[getPerformanceResultsAction] Error:", error);
+    return [];
+  }
+  return data || [];
+}
+
+export async function addPerformanceResultAction(tier, status, odds) {
+  const { data, error } = await supabase
+    .from('performance_results')
+    .insert({
+      tier,
+      status,
+      odds: odds ? Number(odds) : null,
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("[addPerformanceResultAction] Error:", error);
+    return { success: false, error };
+  }
+  return { success: true, data };
+}
+
+export async function deletePerformanceResultAction(id) {
+  const { error } = await supabase
+    .from('performance_results')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error("[deletePerformanceResultAction] Error:", error);
+    return false;
+  }
+  return true;
+}

@@ -5,6 +5,7 @@ import {
   getLatestAccumsAction,
   requestPaymentAction,
   checkUnlockStatusAction,
+  getPerformanceResultsAction,
 } from "./actions";
 
 // ─── TIER CONFIG ─────────────────────────────────────────────────────────────
@@ -466,23 +467,15 @@ function AccumCard({ accum, dark, t }) {
   );
 }
 
-function ResultTicker({ t, dark }) {
-  const results = [
-    { status: 'win', odds: '2.40', label: 'FREE' },
-    { status: 'win', odds: '3.85', label: 'VIP SAFE' },
-    { status: 'loss', label: 'VIP BIG' },
-    { status: 'win', odds: '5.20', label: 'VIP BIG' },
-    { status: 'loss', label: 'VIP SAFE' },
-    { status: 'win', odds: '2.15', label: 'FREE' },
-    { status: 'win', odds: '8.15', label: 'VIP BIG' },
-    { status: 'loss', label: 'FREE' },
-  ];
+function ResultTicker({ t, dark, results = [] }) {
+  if (!results || results.length === 0) return null;
 
   // Double the items for seamless scrolling
   const items = [...results, ...results];
 
   const getTierConfig = (label) => {
-    switch (label) {
+    const l = label.toUpperCase();
+    switch (l) {
       case 'FREE': return { bg: "rgba(0, 212, 94, 0.15)", border: "#00D45E", text: "#00D45E" };
       case 'VIP SAFE': return { bg: "rgba(245, 200, 66, 0.15)", border: "#F5C842", text: "#F5C842" };
       case 'VIP BIG': return { bg: "rgba(157, 78, 221, 0.15)", border: "#9D4EDD", text: "#9D4EDD" };
@@ -511,7 +504,8 @@ function ResultTicker({ t, dark }) {
         gap: 20
       }}>
         {items.map((res, i) => {
-          const cfg = getTierConfig(res.label);
+          const displayLabel = res.tier === "premium" ? "VIP BIG" : res.tier === "vip" ? "VIP SAFE" : res.tier;
+          const cfg = getTierConfig(displayLabel);
           return (
             <div key={i} style={{ 
               display: "flex", 
@@ -524,7 +518,7 @@ function ResultTicker({ t, dark }) {
               whiteSpace: "nowrap",
               backdropFilter: "blur(4px)"
             }}>
-              <span style={{ fontSize: 10, fontWeight: 900, color: cfg.text, letterSpacing: 1, textTransform: "uppercase" }}>{res.label}</span>
+              <span style={{ fontSize: 10, fontWeight: 900, color: cfg.text, letterSpacing: 1, textTransform: "uppercase" }}>{displayLabel}</span>
               <div style={{ height: 14, width: 1.5, background: `${cfg.text}22` }} />
               {res.status === 'win' ? (
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
@@ -557,6 +551,7 @@ function ResultTicker({ t, dark }) {
 export default function App() {
   const [dark, setDark] = useState(true);
   const [accums, setAccums] = useState(null);
+  const [performance, setPerformance] = useState([]);
   const [loading, setLoading] = useState(true);
   const t = dark ? DARK : LIGHT;
 
@@ -568,6 +563,8 @@ export default function App() {
       if (Object.keys(stored).length > 0) {
         setAccums(stored);
       }
+      const perf = await getPerformanceResultsAction();
+      setPerformance(perf);
       setLoading(false);
     })();
   }, []);
@@ -603,8 +600,7 @@ export default function App() {
             <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#00D45E", animation: "pulse 2s infinite" }} />
             WEEKLY PERFORMANCE TRACKER
           </div>
-
-          <ResultTicker t={t} dark={dark} />
+          <ResultTicker t={t} dark={dark} results={performance} />
           <p style={{ fontSize: 14, color: t.textDim, lineHeight: 1.6, fontWeight: 900 }}>Expertly researched picks for today</p>
         </div>
 

@@ -9,6 +9,9 @@ import {
   getPaymentRequestsAction,
   verifyPaymentAction,
   getSmsLogsAction,
+  getPerformanceResultsAction,
+  addPerformanceResultAction,
+  deletePerformanceResultAction,
 } from "../../actions";
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
@@ -352,6 +355,109 @@ function SmsLogsTab() {
   );
 }
 
+function PerformanceTab() {
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [adding, setAdding] = useState(false);
+  
+  // Form state
+  const [tier, setTier] = useState("free");
+  const [status, setStatus] = useState("win");
+  const [odds, setOdds] = useState("2.50");
+
+  const loadResults = async () => {
+    setLoading(true);
+    const data = await getPerformanceResultsAction();
+    setResults(data);
+    setLoading(false);
+  };
+
+  useEffect(() => { loadResults(); }, []);
+
+  const handleAdd = async () => {
+    setAdding(true);
+    const res = await addPerformanceResultAction(tier, status, status === 'win' ? odds : null);
+    if (res.success) {
+      loadResults();
+      setStatus("win");
+      setOdds("2.50");
+    } else {
+      alert("Failed to add result.");
+    }
+    setAdding(false);
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm("Delete this performance entry?")) return;
+    const ok = await deletePerformanceResultAction(id);
+    if (ok) loadResults();
+  };
+
+  return (
+    <div>
+      <div style={{ marginBottom: 25, background: DARK.surface, border: `1px solid ${DARK.border}`, borderRadius: 16, padding: 20 }}>
+        <div style={{ fontSize: 14, fontWeight: 900, color: DARK.green, marginBottom: 15, letterSpacing: 1 }}>➕ ADD PERFORMANCE RESULT</div>
+        
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 15, marginBottom: 15 }}>
+          <div>
+            <label style={{ display: "block", fontSize: 10, color: DARK.textDim, marginBottom: 4, fontWeight: 700 }}>TIER</label>
+            <select value={tier} onChange={e => setTier(e.target.value)} style={inputStyle}>
+              <option value="free">FREE</option>
+              <option value="vip">VIP SAFE</option>
+              <option value="premium">VIP BIG</option>
+            </select>
+          </div>
+          <div>
+            <label style={{ display: "block", fontSize: 10, color: DARK.textDim, marginBottom: 4, fontWeight: 700 }}>STATUS</label>
+            <select value={status} onChange={e => setStatus(e.target.value)} style={inputStyle}>
+              <option value="win">WIN ✅</option>
+              <option value="loss">LOSS ❌</option>
+            </select>
+          </div>
+          {status === 'win' && (
+            <div>
+              <label style={{ display: "block", fontSize: 10, color: DARK.textDim, marginBottom: 4, fontWeight: 700 }}>ODDS</label>
+              <input type="number" step="0.01" value={odds} onChange={e => setOdds(e.target.value)} style={inputStyle} />
+            </div>
+          )}
+        </div>
+        
+        <button onClick={handleAdd} disabled={adding} style={{ width: "100%", padding: "12px", background: DARK.green, color: "#000", border: "none", borderRadius: 10, fontWeight: 900, cursor: "pointer" }}>
+          {adding ? "ADDING..." : "ADD TO TICKER"}
+        </button>
+      </div>
+
+      <div style={{ fontSize: 12, fontWeight: 900, color: DARK.text, marginBottom: 15 }}>LIVE TICKER ITEMS (Active for 7 days)</div>
+      
+      {loading ? (
+        <div style={{ color: DARK.textDim }}>Loading...</div>
+      ) : results.length === 0 ? (
+        <div style={{ color: DARK.textDim, fontSize: 12 }}>No performance results yet.</div>
+      ) : (
+        results.map(res => (
+          <div key={res.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: DARK.surface, border: `1px solid ${DARK.border}`, padding: "12px 15px", borderRadius: 12, marginBottom: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ 
+                fontSize: 10, fontWeight: 900, padding: "3px 8px", borderRadius: 4,
+                background: res.status === 'win' ? `${DARK.green}22` : `${DARK.red}22`,
+                color: res.status === 'win' ? DARK.green : DARK.red
+              }}>
+                {res.status.toUpperCase()}
+              </span>
+              <span style={{ fontSize: 12, fontWeight: 800, color: DARK.text }}>{res.tier.toUpperCase()}</span>
+              {res.odds && <span style={{ fontSize: 12, color: DARK.textDim }}>@{res.odds}</span>}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 15 }}>
+              <span style={{ fontSize: 10, color: DARK.textDim }}>{new Date(res.created_at).toLocaleDateString()}</span>
+              <button onClick={() => handleDelete(res.id)} style={{ background: "none", border: "none", color: DARK.red, cursor: "pointer", fontSize: 14 }}>🗑</button>
+            </div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
 // ─── The Main Admin Logic ────────────────────────────────────────────────────
 function AdminDashboard() {
   // ── CREATE TAB state ───────────────────────────────────────────────────────
@@ -459,6 +565,7 @@ function AdminDashboard() {
           { key: "create", label: "✏️ Create" },
           { key: "manage", label: "🗂️ Manage" },
           { key: "payments", label: "💰 Payments" },
+          { key: "performance", label: "📈 Performance" },
           { key: "sms", label: "💬 SMS Logs" },
         ].map(({ key, label }) => (
           <button
@@ -583,6 +690,7 @@ function AdminDashboard() {
       )}
 
       {tab === "sms" && <SmsLogsTab />}
+      {tab === "performance" && <PerformanceTab />}
 
       {editTarget && <EditModal accum={editTarget} onClose={() => setEditTarget(null)} onSaved={loadAccums} />}
     </div>
