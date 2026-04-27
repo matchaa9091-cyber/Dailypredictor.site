@@ -261,7 +261,7 @@ export async function requestPaymentAction(phone, method, tier, price, trId) {
       method,
       tier,
       amount: price,
-      transaction_id: trId,
+      transaction_id: trId ? trId.trim().toUpperCase() : null,
       status: 'pending',
       date: new Date().toISOString().slice(0, 10),
     })

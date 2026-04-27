@@ -49,9 +49,9 @@ export async function POST(req) {
     // MTN MoMo format:  "...Trans. ID: 12345678901..."
     // Airtel format:    "...Ref: ABCD12345..." or "...ID: 40266720157..."
     const idMatch = content.match(
-      /(?:Trans(?:action)?\.?\s*ID|Ref(?:erence)?|TxID|\bID\b)[:\s]+([A-Z0-9]{6,15})/i
+      /(?:Trans(?:action)?\.?\s*ID|Ref(?:erence)?|TxID|Receipt|\bID\b)[:\s]+([A-Z0-9.\-]{4,25})/i
     );
-    const trId = idMatch ? idMatch[1].trim() : null;
+    const trId = idMatch ? idMatch[1].trim().toUpperCase() : null;
 
     // ── RegEx: Extract Amount ────────────────────────────────────────────────
     const amountMatch = content.match(/UGX\s*([\d,]+)/i);
