@@ -8,21 +8,24 @@ export const viewport = {
 };
 
 export const metadata = {
+  metadataBase: new URL("https://dailypredictorug.afrozex.com"),
   title: "Daily Predictor UG - Expert Football Analysis & Daily Tickets",
   description: "Get the best football match analysis and daily prediction tickets in Uganda. Reliable stats for Sofascore and Flashscore users.",
   keywords: ["Daily Predictor UG", "Football Prediction Uganda", "VIP Football Tips", "Sure Wins Today", "Soccer Betting Analysis", "Afrozex Sports Analysis"],
   alternates: {
-    canonical: "https://dailypredictorug.afrozex.com",
+    canonical: "/",
   },
   manifest: "/manifest.json",
   applicationName: "Daily Predictor UG",
   appleWebApp: {
     title: "Daily Predictor UG",
+    statusBarStyle: "default",
+    capable: true,
   },
   openGraph: {
     title: "Daily Predictor UG - Expert Football Analysis & Daily Tickets",
     description: "Get the best football match analysis and daily prediction tickets in Uganda.",
-    url: "https://dailypredictorug.afrozex.com",
+    url: "/",
     siteName: "Daily Predictor UG",
     locale: "en_UG",
     type: "website",
@@ -49,6 +52,7 @@ export default function RootLayout({ children }) {
     "@context": "https://schema.org",
     "@type": "WebSite",
     "name": "Daily Predictor UG",
+    "alternateName": ["DailyPredictorUG", "Daily Predictor Uganda"],
     "url": "https://dailypredictorug.afrozex.com",
     "logo": "https://dailypredictorug.afrozex.com/logo.png"
   };
