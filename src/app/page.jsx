@@ -431,21 +431,44 @@ function AccumCard({ accum, dark, t }) {
             </div>
           </div>
 
-          {unlocked && accum.booking_code && (
+          {accum.booking_code && (
             <div style={{ padding: "16px 20px", borderBottom: `1px solid ${t.border}`, background: dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <div style={{ fontSize: 10, color: t.textDim, fontWeight: 900, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>🟢 BETPAWA BOOKING CODE</div>
-                <div style={{ fontFamily: "'Russo One',sans-serif", fontSize: 18, color: t.text }}>{accum.booking_code}</div>
+                <div style={{ 
+                  fontFamily: "'Russo One',sans-serif", 
+                  fontSize: 18, 
+                  color: unlocked ? t.text : t.textDim,
+                  filter: unlocked ? "none" : "blur(5px)",
+                  userSelect: unlocked ? "auto" : "none"
+                }}>
+                  {unlocked ? accum.booking_code : "XXXXXX"}
+                </div>
               </div>
               <button onClick={(e) => {
                 e.preventDefault();
+                if (!unlocked) {
+                  setPayOpen(true);
+                  return;
+                }
                 navigator.clipboard.writeText(accum.booking_code);
                 const btn = e.currentTarget;
                 const orig = btn.innerText;
                 btn.innerText = "COPIED!";
                 setTimeout(() => { btn.innerText = orig; }, 2000);
-              }} style={{ background: cfg.color, color: cfg.dark ? "#000" : "#fff", border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontWeight: 900, fontSize: 11, boxShadow: `0 4px 10px ${cfg.color}44`, transition: "all 0.2s" }}>
-                COPY CODE
+              }} style={{ 
+                background: unlocked ? cfg.color : t.border, 
+                color: unlocked ? (cfg.dark ? "#000" : "#fff") : t.textDim, 
+                border: "none", 
+                borderRadius: 8, 
+                padding: "8px 16px", 
+                cursor: "pointer", 
+                fontWeight: 900, 
+                fontSize: 11, 
+                boxShadow: unlocked ? `0 4px 10px ${cfg.color}44` : "none", 
+                transition: "all 0.2s" 
+              }}>
+                {unlocked ? "COPY CODE" : "UNLOCK CODE"}
               </button>
             </div>
           )}
