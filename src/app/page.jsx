@@ -456,26 +456,11 @@ function AccumCard({ accum, dark, t }) {
               {/* Right: Button */}
               <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
                 <button onClick={(e) => {
-                  e.preventDefault();
                   if (!unlocked) {
                     setPayOpen(true);
                     return;
                   }
-                  
-                  const textToCopy = accum.booking_code || "";
-                  if (navigator.clipboard && window.isSecureContext) {
-                    navigator.clipboard.writeText(textToCopy);
-                  } else {
-                    const textArea = document.createElement("textarea");
-                    textArea.value = textToCopy;
-                    textArea.style.position = "absolute";
-                    textArea.style.left = "-999999px";
-                    document.body.prepend(textArea);
-                    textArea.select();
-                    try { document.execCommand('copy'); } catch(err) {}
-                    textArea.remove();
-                  }
-
+                  navigator.clipboard.writeText(String(accum.booking_code).trim());
                   const btn = e.currentTarget;
                   const orig = btn.innerText;
                   btn.innerText = "COPIED!";
