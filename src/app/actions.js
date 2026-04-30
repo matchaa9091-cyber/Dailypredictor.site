@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from '@supabase/supabase-js';
-import { revalidatePath } from 'next/cache';
+import { revalidatePath, unstable_noStore as noStore } from 'next/cache';
 
 // Use service-role-capable client for server-side writes
 // Falls back to anon key if service key not set (RLS must allow anon inserts)
@@ -81,11 +81,12 @@ export async function saveSingleAccumAction(tier, acc) {
   }
 
   console.log(`[saveSingleAccumAction] ✅ Saved ${tier} ticket (id: ${accumData.id})`);
-  revalidatePath('/');
+  revalidatePath('/', 'layout');
   return accumData;
 }
 
 export async function getLatestAccumsAction(phone = null) {
+  noStore();
   const tiers = ["free", "vip", "premium"];
   const results = {};
   const today = new Date().toISOString().slice(0, 10);
@@ -164,6 +165,7 @@ export async function getLatestAccumsAction(phone = null) {
 
 // ─── Admin: List ALL tickets (all tiers, all dates) ────────────────────
 export async function getAllAccumsAction() {
+  noStore();
   const { data, error } = await supabase
     .from('daily_accums')
     .select(`
@@ -205,7 +207,7 @@ export async function deleteAccumAction(accumId) {
     console.error('[deleteAccumAction] Error:', error);
     return false;
   }
-  revalidatePath('/');
+  revalidatePath('/', 'layout');
   return true;
 }
 
@@ -259,7 +261,7 @@ export async function updateAccumAction(accumId, tier, matches, bookingCode) {
     console.error('[updateAccumAction] Error updating match_details:', matchErr);
     return false;
   }
-  revalidatePath('/');
+  revalidatePath('/', 'layout');
   return true;
 }
 
