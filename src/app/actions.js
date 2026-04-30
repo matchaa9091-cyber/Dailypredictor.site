@@ -1,12 +1,17 @@
 "use server";
 
 import { createClient } from '@supabase/supabase-js';
+import { revalidatePath } from 'next/cache';
 
 // Use service-role-capable client for server-side writes
 // Falls back to anon key if service key not set (RLS must allow anon inserts)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  {
+    auth: { persistSession: false },
+    global: { fetch: (url, init) => fetch(url, { ...init, cache: 'no-store' }) }
+  }
 );
 
 export async function saveSingleAccumAction(tier, acc) {
@@ -76,6 +81,7 @@ export async function saveSingleAccumAction(tier, acc) {
   }
 
   console.log(`[saveSingleAccumAction] ✅ Saved ${tier} ticket (id: ${accumData.id})`);
+  revalidatePath('/');
   return accumData;
 }
 
@@ -199,6 +205,7 @@ export async function deleteAccumAction(accumId) {
     console.error('[deleteAccumAction] Error:', error);
     return false;
   }
+  revalidatePath('/');
   return true;
 }
 
@@ -252,6 +259,7 @@ export async function updateAccumAction(accumId, tier, matches, bookingCode) {
     console.error('[updateAccumAction] Error updating match_details:', matchErr);
     return false;
   }
+  revalidatePath('/');
   return true;
 }
 
