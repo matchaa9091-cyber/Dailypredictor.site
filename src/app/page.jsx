@@ -436,7 +436,7 @@ function AccumCard({ accum, dark, t }) {
               
               {/* Left: Logo */}
               <div style={{ flex: 1, display: "flex", justifyContent: "flex-start" }}>
-                <img src="/betpawa.png" alt="betPawa" style={{ height: 22, objectFit: "contain" }} />
+                <img src="/betpawa.png" alt="betPawa" style={{ height: 36, objectFit: "contain" }} />
               </div>
 
               {/* Center: Text & Code */}
@@ -461,7 +461,21 @@ function AccumCard({ accum, dark, t }) {
                     setPayOpen(true);
                     return;
                   }
-                  navigator.clipboard.writeText(accum.booking_code);
+                  
+                  const textToCopy = accum.booking_code || "";
+                  if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(textToCopy);
+                  } else {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = textToCopy;
+                    textArea.style.position = "absolute";
+                    textArea.style.left = "-999999px";
+                    document.body.prepend(textArea);
+                    textArea.select();
+                    try { document.execCommand('copy'); } catch(err) {}
+                    textArea.remove();
+                  }
+
                   const btn = e.currentTarget;
                   const orig = btn.innerText;
                   btn.innerText = "COPIED!";
