@@ -33,7 +33,7 @@ export const metadata = {
     apple: "/logo.png",
   },
   verification: {
-    google: "HwLffxN7kXaT6BfkGvNmxSYbjUkCB374_dFqDEZ3t9U",
+    google: "fdj_7weueDkVSZHRgsZMhqAvTWmd9-SrANRkZQL2MXw",
   },
 };
 
