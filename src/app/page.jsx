@@ -455,33 +455,20 @@ function AccumCard({ accum, dark, t }) {
 
               {/* Right: Button */}
               <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
-                <button onClick={async (e) => {
+                <button onClick={(e) => {
                   if (!unlocked) {
                     setPayOpen(true);
                     return;
                   }
                   
-                  const btn = e.currentTarget;
-                  const orig = btn.innerText;
                   const code = String(accum.booking_code || "").trim();
-                  
                   if (!code) return;
 
-                  try {
-                    if (navigator.clipboard) {
-                      await navigator.clipboard.writeText(code);
-                    } else {
-                      throw new Error("No clipboard");
-                    }
-                  } catch (err) {
-                    const el = document.createElement('input');
-                    el.value = code;
-                    document.body.appendChild(el);
-                    el.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(el);
-                  }
+                  // Using exact same logic that works on the payment screen
+                  navigator.clipboard.writeText(code);
 
+                  const btn = e.currentTarget;
+                  const orig = btn.innerText;
                   btn.innerText = "COPIED!";
                   setTimeout(() => { btn.innerText = orig; }, 2000);
                 }} style={{ 
