@@ -10,7 +10,10 @@ export const viewport = {
 export const metadata = {
   title: "Daily Predictor UG - Expert Football Analysis & Daily Tickets",
   description: "Get the best football match analysis and daily prediction tickets in Uganda. Reliable stats for Sofascore and Flashscore users.",
-  keywords: ["Daily Predictor", "Uganda football tips", "match analysis", "Afrozex Sports Analysis"],
+  keywords: ["Daily Predictor UG", "Football Prediction Uganda", "VIP Football Tips", "Sure Wins Today", "Soccer Betting Analysis", "Afrozex Sports Analysis"],
+  alternates: {
+    canonical: "https://dailypredictorug.afrozex.com",
+  },
   manifest: "/manifest.json",
   applicationName: "Daily Predictor UG",
   appleWebApp: {

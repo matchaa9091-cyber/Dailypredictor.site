@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://dailypredictorug.afrozex.com/sitemap.xml

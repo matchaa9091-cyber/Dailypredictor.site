@@ -657,7 +657,10 @@ export default function App() {
           <div style={{ display: "inline-flex", alignItems: "center", gap: 8, background: "rgba(0,212,94,0.1)", border: "1.5px solid rgba(0,212,94,0.3)", borderRadius: 30, padding: "7px 20px", marginBottom: 16 }}>
             <span style={{ fontSize: 12, color: "#00D45E", fontWeight: 900, letterSpacing: 1.5 }}>📅 {new Date().toLocaleDateString("en-UG", { weekday: "long", day: "numeric", month: "long" })}</span>
           </div>
-          <h1 style={{ fontFamily: "'Russo One',sans-serif", fontSize: 26, color: t.text, letterSpacing: 0.5, marginBottom: 8 }}>PRO ANALYZED <span style={{ color: "#00D45E" }}>VIP TICKETS</span></h1>
+          <h1 style={{ position: "absolute", width: 1, height: 1, padding: 0, margin: -1, overflow: "hidden", clip: "rect(0,0,0,0)", border: 0 }}>
+            Daily Predictor UG - Best Football Prediction Tickets & Match Analysis in Uganda
+          </h1>
+          <div style={{ fontFamily: "'Russo One',sans-serif", fontSize: 26, color: t.text, letterSpacing: 0.5, marginBottom: 8 }}>PRO ANALYZED <span style={{ color: "#00D45E" }}>VIP TICKETS</span></div>
           
           <div style={{ 
             display: "inline-flex", alignItems: "center", gap: 6, 
