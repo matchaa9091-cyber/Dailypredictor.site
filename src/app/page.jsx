@@ -464,8 +464,17 @@ function AccumCard({ accum, dark, t }) {
                   const code = String(accum.booking_code || "").trim();
                   if (!code) return;
 
-                  // Using exact same logic that works on the payment screen
-                  navigator.clipboard.writeText(code);
+                  // Mobile-safe clipboard copy
+                  const el = document.createElement('input');
+                  el.value = code;
+                  el.setAttribute('readonly', '');
+                  el.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+                  document.body.appendChild(el);
+                  el.focus();
+                  el.select();
+                  el.setSelectionRange(0, 9999); // iOS needs this
+                  document.execCommand('copy');
+                  document.body.removeChild(el);
 
                   const btn = e.currentTarget;
                   const orig = btn.innerText;
