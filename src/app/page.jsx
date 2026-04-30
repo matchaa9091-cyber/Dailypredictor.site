@@ -434,7 +434,10 @@ function AccumCard({ accum, dark, t }) {
           {accum.booking_code && (
             <div style={{ padding: "16px 20px", borderBottom: `1px solid ${t.border}`, background: dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
-                <div style={{ fontSize: 10, color: t.textDim, fontWeight: 900, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>🟢 BETPAWA BOOKING CODE</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                  <img src="/betpawa.png" alt="betPawa" style={{ height: 16, objectFit: "contain" }} />
+                  <span style={{ fontSize: 10, color: t.textDim, fontWeight: 900, letterSpacing: 1.5, textTransform: "uppercase" }}>BOOKING CODE</span>
+                </div>
                 <div style={{ 
                   fontFamily: "'Russo One',sans-serif", 
                   fontSize: 18, 
