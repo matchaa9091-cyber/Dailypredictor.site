@@ -433,11 +433,15 @@ function AccumCard({ accum, dark, t }) {
 
           {accum.booking_code && (
             <div style={{ padding: "16px 20px", borderBottom: `1px solid ${t.border}`, background: dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                  <img src="/betpawa.png" alt="betPawa" style={{ height: 16, objectFit: "contain" }} />
-                  <span style={{ fontSize: 10, color: t.textDim, fontWeight: 900, letterSpacing: 1.5, textTransform: "uppercase" }}>BOOKING CODE</span>
-                </div>
+              
+              {/* Left: Logo */}
+              <div style={{ flex: 1, display: "flex", justifyContent: "flex-start" }}>
+                <img src="/betpawa.png" alt="betPawa" style={{ height: 22, objectFit: "contain" }} />
+              </div>
+
+              {/* Center: Text & Code */}
+              <div style={{ flex: 1.5, display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: t.textDim, fontWeight: 900, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>BETPAWA BOOKING CODE</div>
                 <div style={{ 
                   fontFamily: "'Russo One',sans-serif", 
                   fontSize: 18, 
@@ -448,31 +452,36 @@ function AccumCard({ accum, dark, t }) {
                   {unlocked ? accum.booking_code : "XXXXXX"}
                 </div>
               </div>
-              <button onClick={(e) => {
-                e.preventDefault();
-                if (!unlocked) {
-                  setPayOpen(true);
-                  return;
-                }
-                navigator.clipboard.writeText(accum.booking_code);
-                const btn = e.currentTarget;
-                const orig = btn.innerText;
-                btn.innerText = "COPIED!";
-                setTimeout(() => { btn.innerText = orig; }, 2000);
-              }} style={{ 
-                background: unlocked ? cfg.color : t.border, 
-                color: unlocked ? (cfg.dark ? "#000" : "#fff") : t.textDim, 
-                border: "none", 
-                borderRadius: 8, 
-                padding: "8px 16px", 
-                cursor: "pointer", 
-                fontWeight: 900, 
-                fontSize: 11, 
-                boxShadow: unlocked ? `0 4px 10px ${cfg.color}44` : "none", 
-                transition: "all 0.2s" 
-              }}>
-                {unlocked ? "COPY CODE" : "UNLOCK CODE"}
-              </button>
+
+              {/* Right: Button */}
+              <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
+                <button onClick={(e) => {
+                  e.preventDefault();
+                  if (!unlocked) {
+                    setPayOpen(true);
+                    return;
+                  }
+                  navigator.clipboard.writeText(accum.booking_code);
+                  const btn = e.currentTarget;
+                  const orig = btn.innerText;
+                  btn.innerText = "COPIED!";
+                  setTimeout(() => { btn.innerText = orig; }, 2000);
+                }} style={{ 
+                  background: unlocked ? cfg.color : t.border, 
+                  color: unlocked ? (cfg.dark ? "#000" : "#fff") : t.textDim, 
+                  border: "none", 
+                  borderRadius: 8, 
+                  padding: "8px 16px", 
+                  cursor: "pointer", 
+                  fontWeight: 900, 
+                  fontSize: 11, 
+                  boxShadow: unlocked ? `0 4px 10px ${cfg.color}44` : "none", 
+                  transition: "all 0.2s" 
+                }}>
+                  {unlocked ? "COPY CODE" : "UNLOCK CODE"}
+                </button>
+              </div>
+
             </div>
           )}
 
