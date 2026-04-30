@@ -455,14 +455,33 @@ function AccumCard({ accum, dark, t }) {
 
               {/* Right: Button */}
               <div style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}>
-                <button onClick={(e) => {
+                <button onClick={async (e) => {
                   if (!unlocked) {
                     setPayOpen(true);
                     return;
                   }
-                  navigator.clipboard.writeText(String(accum.booking_code).trim());
+                  
                   const btn = e.currentTarget;
                   const orig = btn.innerText;
+                  const code = String(accum.booking_code || "").trim();
+                  
+                  if (!code) return;
+
+                  try {
+                    if (navigator.clipboard) {
+                      await navigator.clipboard.writeText(code);
+                    } else {
+                      throw new Error("No clipboard");
+                    }
+                  } catch (err) {
+                    const el = document.createElement('input');
+                    el.value = code;
+                    document.body.appendChild(el);
+                    el.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(el);
+                  }
+
                   btn.innerText = "COPIED!";
                   setTimeout(() => { btn.innerText = orig; }, 2000);
                 }} style={{ 
