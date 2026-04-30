@@ -431,6 +431,25 @@ function AccumCard({ accum, dark, t }) {
             </div>
           </div>
 
+          {unlocked && accum.booking_code && (
+            <div style={{ padding: "16px 20px", borderBottom: `1px solid ${t.border}`, background: dark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.02)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 10, color: t.textDim, fontWeight: 900, letterSpacing: 1.5, textTransform: "uppercase", marginBottom: 4 }}>🟢 BETPAWA BOOKING CODE</div>
+                <div style={{ fontFamily: "'Russo One',sans-serif", fontSize: 18, color: t.text }}>{accum.booking_code}</div>
+              </div>
+              <button onClick={(e) => {
+                e.preventDefault();
+                navigator.clipboard.writeText(accum.booking_code);
+                const btn = e.currentTarget;
+                const orig = btn.innerText;
+                btn.innerText = "COPIED!";
+                setTimeout(() => { btn.innerText = orig; }, 2000);
+              }} style={{ background: cfg.color, color: cfg.dark ? "#000" : "#fff", border: "none", borderRadius: 8, padding: "8px 16px", cursor: "pointer", fontWeight: 900, fontSize: 11, boxShadow: `0 4px 10px ${cfg.color}44`, transition: "all 0.2s" }}>
+                COPY CODE
+              </button>
+            </div>
+          )}
+
           <div style={{ padding: "18px 20px" }}>
             {accum.tier === "free" ? null : !unlocked ? (
               <button onClick={() => setPayOpen(true)} style={{

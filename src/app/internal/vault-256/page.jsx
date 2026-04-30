@@ -162,6 +162,7 @@ function MatchCard({ match: m, index: i, total, onUpdate, onRemove }) {
 function EditModal({ accum, onClose, onSaved }) {
   const [tier, setTier] = useState(accum.tier);
   const [matches, setMatches] = useState(accum.matches.map((m) => ({ ...m })));
+  const [bookingCode, setBookingCode] = useState(accum.booking_code || "");
   const [saving, setSaving] = useState(false);
   const [status, setStatus] = useState("");
 
@@ -177,7 +178,7 @@ function EditModal({ accum, onClose, onSaved }) {
   const handleSave = async () => {
     setSaving(true);
     setStatus("Saving…");
-    const ok = await updateAccumAction(accum.id, tier, matches);
+    const ok = await updateAccumAction(accum.id, tier, matches, bookingCode);
     if (ok) {
       setStatus("✅ Saved!");
       setTimeout(() => { onSaved(); onClose(); }, 800);
@@ -231,6 +232,10 @@ function EditModal({ accum, onClose, onSaved }) {
               </button>
             ))}
           </div>
+        </div>
+
+        <div style={{ marginBottom: 22 }}>
+          <Input label="BETPAWA BOOKING CODE (Optional)" value={bookingCode} onChange={setBookingCode} />
         </div>
 
         {/* Matches */}
@@ -464,6 +469,7 @@ function AdminDashboard() {
   const [tab, setTab] = useState("create"); // "create" | "manage"
   const [tier, setTier] = useState("free");
   const [matches, setMatches] = useState([blankMatch()]);
+  const [bookingCode, setBookingCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState("");
 
@@ -504,10 +510,11 @@ function AdminDashboard() {
         (a, m) => new Date(m.kickoff).getTime() < new Date(a).getTime() ? m.kickoff : a,
         matches[0].kickoff
       );
-      const res = await saveSingleAccumAction(tier, { tier, matches, totalOdds, firstKick });
+      const res = await saveSingleAccumAction(tier, { tier, matches, totalOdds, firstKick, bookingCode });
       if (res) {
         setStatus("✅ Success! Ticket is live.");
         setMatches([blankMatch()]);
+        setBookingCode("");
       } else {
         setStatus("❌ Failed to save. Check Console.");
       }
@@ -601,6 +608,9 @@ function AdminDashboard() {
                 >{t === "vip" ? "VIP SAFE" : t === "premium" ? "VIP BIG" : t}</button>
               ))}
             </div>
+          </div>
+          <div style={{ marginBottom: 25 }}>
+            <Input label="BETPAWA BOOKING CODE (Optional)" value={bookingCode} onChange={setBookingCode} />
           </div>
           {matches.map((m, i) => (
             <MatchCard key={i} match={m} index={i} total={matches.length} onUpdate={updateMatch} onRemove={removeMatch} />

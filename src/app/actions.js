@@ -38,6 +38,7 @@ export async function saveSingleAccumAction(tier, acc) {
       total_odds: Number(totalOdds.toFixed(2)),
       date: new Date().toISOString().slice(0, 10),
       first_kickoff: new Date(firstKickoff).toISOString(),
+      booking_code: acc.bookingCode || null,
     })
     .select()
     .single();
@@ -202,7 +203,7 @@ export async function deleteAccumAction(accumId) {
 }
 
 // ─── Admin: Update a ticket's tier + matches ──────────────────────────
-export async function updateAccumAction(accumId, tier, matches) {
+export async function updateAccumAction(accumId, tier, matches, bookingCode) {
   const toISO = (str) => {
     if (!str) return new Date().toISOString();
     return new Date(str).toISOString();
@@ -220,6 +221,7 @@ export async function updateAccumAction(accumId, tier, matches) {
       tier,
       total_odds: Number(totalOdds.toFixed(2)),
       first_kickoff: new Date(firstKickoff).toISOString(),
+      booking_code: bookingCode || null,
     })
     .eq('id', accumId);
 
