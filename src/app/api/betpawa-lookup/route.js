@@ -1,5 +1,15 @@
 import { NextResponse } from "next/server";
-import { parseBetPawaText } from "@/lib/betpawa-parser";
+import { parseBetPawaText, transformBetPawaApiItem } from "@/lib/betpawa-parser";
+
+const BRANDS = [
+  "betpawa-uganda",
+  "betpawa-kenya",
+  "betpawa-tanzania",
+  "betpawa-rwanda",
+  "betpawa-ghana",
+  "betpawa-nigeria",
+  "betpawa-zambia",
+];
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -10,15 +20,65 @@ export async function GET(request) {
   }
 
   try {
-    // If an external betting converter API is configured in environment variables
+    // 1. Live BetPawa internal API query using discovered native headers
+    for (const brand of BRANDS) {
+      try {
+        const domain =
+          brand === "betpawa-kenya"
+            ? "www.betpawa.co.ke"
+            : brand === "betpawa-tanzania"
+            ? "www.betpawa.co.tz"
+            : brand === "betpawa-rwanda"
+            ? "www.betpawa.rw"
+            : brand === "betpawa-ghana"
+            ? "www.betpawa.com.gh"
+            : brand === "betpawa-nigeria"
+            ? "www.betpawa.ng"
+            : brand === "betpawa-zambia"
+            ? "www.betpawa.co.zm"
+            : "www.betpawa.ug";
+
+        const res = await fetch(
+          `https://${domain}/api/sportsbook/v3/booking-number/${encodeURIComponent(code)}`,
+          {
+            headers: {
+              "User-Agent":
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+              "Accept": "application/json, text/plain, */*",
+              "X-Pawa-Brand": brand,
+              "X-Pawa-Language": "en",
+              "Referer": `https://${domain}/`,
+            },
+          }
+        );
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.items && data.items.length > 0) {
+            const matches = data.items.map(transformBetPawaApiItem);
+            return NextResponse.json({
+              success: true,
+              source: `betpawa_live (${brand})`,
+              bookingCode: code,
+              matches,
+              count: matches.length,
+            });
+          }
+        }
+      } catch (subErr) {
+        // Continue to fallback brand
+      }
+    }
+
+    // 2. Fallback to external converter API if configured
     const converterApiUrl = process.env.BETPAWA_CONVERTER_API_URL;
     const converterApiKey = process.env.BETPAWA_CONVERTER_API_KEY;
 
     if (converterApiUrl) {
       const res = await fetch(`${converterApiUrl}?code=${encodeURIComponent(code)}`, {
         headers: {
-          "Authorization": converterApiKey ? `Bearer ${converterApiKey}` : "",
-          "Accept": "application/json",
+          Authorization: converterApiKey ? `Bearer ${converterApiKey}` : "",
+          Accept: "application/json",
         },
       });
 
@@ -35,14 +95,12 @@ export async function GET(request) {
       }
     }
 
-    // Direct BetPawa online lookup
-    // Because BetPawa protects its proprietary endpoints behind Cloudflare WAF,
-    // we notify the client to use the smart text paste importer or manual input.
     return NextResponse.json({
       success: false,
       bookingCode: code,
-      error: "BetPawa requires interactive session verification for direct code lookup.",
-      suggestion: "Please use the '📋 Paste BetPawa Slip / Text' option to auto-fill all matches instantly from your copied BetPawa betslip or share message.",
+      error: `Could not find booking code "${code}" on BetPawa. It may have expired or belongs to an unlisted market.`,
+      suggestion:
+        "You can also use '📋 Paste Slip / Text' to paste the matches directly from BetPawa.",
     });
   } catch (err) {
     console.error("BetPawa lookup error:", err);

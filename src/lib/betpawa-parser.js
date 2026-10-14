@@ -286,3 +286,49 @@ function cleanTeamName(name) {
     .replace(/(?:pick|odds|@|1x2|over|under|ft|ht|kickoff|time|date).*/i, "")
     .trim();
 }
+
+/**
+ * Transforms native BetPawa API item to internal match object
+ */
+export function transformBetPawaApiItem(item) {
+  const event = item.eventInfo || {};
+  const participants = event.participants || [];
+  const home = participants.find((p) => p.position === 1)?.name || participants[0]?.name || "Home";
+  const away = participants.find((p) => p.position === 2)?.name || participants[1]?.name || "Away";
+  const league = event.competition?.name || "Football";
+  const kickoff = event.startTime || new Date().toISOString();
+
+  const selection = item.selections?.[0] || {};
+  const market = selection.market || {};
+  const selectionInfo = selection.selectionInfo || {};
+
+  let mkt = market.displayName || market.name || "Match Result";
+  mkt = mkt.replace("{home}", home).replace("{away}", away);
+
+  let pick = selectionInfo.name || "1";
+  if (selectionInfo.handicap) {
+    pick = `${selectionInfo.name} ${selectionInfo.handicap}`;
+  }
+  if (market.displayName && market.displayName.includes("{home}")) {
+    pick = `${home} ${pick}`;
+  } else if (market.displayName && market.displayName.includes("{away}")) {
+    pick = `${away} ${pick}`;
+  }
+
+  const odds = Number(item.odds?.price) || 1.8;
+
+  return {
+    h: home,
+    a: away,
+    lg: league,
+    fl: getLeagueFlag(league),
+    mkt,
+    pick,
+    odds,
+    conf: 90,
+    analysis: "",
+    hot: false,
+    kickoff,
+  };
+}
+
