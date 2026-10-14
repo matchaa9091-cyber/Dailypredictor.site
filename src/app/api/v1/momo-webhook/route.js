@@ -1,10 +1,7 @@
-import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { getD1 } from '../../../../lib/d1';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
+export const runtime = 'edge';
 
 // Secret key used to verify requests coming from httpsms.com webhook
 // Set this in your httpsms.com webhook headers as: X-Api-Key: Danvid_API_Key_256
@@ -12,6 +9,8 @@ const SECRET_WEBHOOK_KEY = "Danvid_API_Key_256";
 
 export async function POST(req) {
   try {
+    const db = getD1();
+
     // ── Security: check header or query key ──────────────────────
     const { searchParams } = new URL(req.url);
     const queryKey = searchParams.get('key');
@@ -60,20 +59,13 @@ export async function POST(req) {
 
     // ── Log the SMS to database ──────────────────────────────────────────────
     const isAmountValid = amount === null || amount >= 1000;
-    const { data: logData, error: logError } = await supabase
-      .from('sms_logs')
-      .insert({
-        content,
-        sender,
-        status: (trId && isAmountValid) ? 'processing' : 'ignored'
-      })
-      .select()
-      .single();
+    const initialStatus = (trId && isAmountValid) ? 'processing' : 'ignored';
 
-    if (logError) {
-      console.error("[Webhook] Log insert error:", logError);
-      // Don't throw — still try to match
-    }
+    const insertLogRes = await db.prepare(
+      `INSERT INTO sms_logs (content, sender, status) VALUES (?, ?, ?)`
+    ).bind(content, sender, initialStatus).run();
+
+    const logId = insertLogRes?.meta?.last_row_id;
 
     if (!trId) {
       console.log("[Webhook] No Transaction ID found — SMS logged as ignored.");
@@ -82,23 +74,18 @@ export async function POST(req) {
 
     if (!isAmountValid) {
       console.log(`[Webhook] ⛔ Payment rejected: Low amount (UGX ${amount}). Minimum is 1000.`);
-      await supabase.from('sms_logs').update({ status: 'ignored' }).eq('id', logData?.id);
+      if (logId) {
+        await db.prepare(`UPDATE sms_logs SET status = 'ignored' WHERE id = ?`).bind(logId).run();
+      }
       return NextResponse.json({ message: "Payment too low. Minimum 1000 required.", amount });
     }
 
     console.log(`[Webhook] 🔍 Found Transaction ID: ${trId}, Amount: UGX ${amount}`);
 
     // ── Match against pending payment requests ───────────────────────────────
-    const { data: request, error: reqError } = await supabase
-      .from('payment_requests')
-      .select('*')
-      .eq('transaction_id', trId)
-      .eq('status', 'pending')
-      .maybeSingle();
-
-    if (reqError) {
-      console.error("[Webhook] DB match error:", reqError);
-    }
+    const request = await db.prepare(
+      `SELECT * FROM payment_requests WHERE transaction_id = ? AND status = 'pending' LIMIT 1`
+    ).bind(trId).first();
 
     if (request) {
       console.log(`[Webhook] ✅ MATCH! Auto-verifying request for ${request.phone_number} (${request.tier})`);
@@ -106,21 +93,17 @@ export async function POST(req) {
       const today = new Date().toISOString().slice(0, 10);
 
       // Mark SMS log as matched
-      if (logData?.id) {
-        await supabase.from('sms_logs').update({ status: 'matched' }).eq('id', logData.id);
+      if (logId) {
+        await db.prepare(`UPDATE sms_logs SET status = 'matched' WHERE id = ?`).bind(logId).run();
       }
 
       // Verify the payment request
-      await supabase.from('payment_requests')
-        .update({ status: 'verified' })
-        .eq('id', request.id);
+      await db.prepare(`UPDATE payment_requests SET status = 'verified' WHERE id = ?`).bind(request.id).run();
 
       // Unlock the ticket for the customer
-      await supabase.from('unlocked_tickets').insert({
-        phone_number: request.phone_number,
-        tier: request.tier,
-        date: today
-      });
+      await db.prepare(
+        `INSERT OR IGNORE INTO unlocked_tickets (phone_number, tier, date) VALUES (?, ?, ?)`
+      ).bind(request.phone_number, request.tier, today).run();
 
       return NextResponse.json({
         success: true,
@@ -148,17 +131,20 @@ export async function POST(req) {
 // ── Debugging Help: Visit this URL in your browser to see if the table is working
 export async function GET(req) {
   try {
-    const { error: insertError } = await supabase.from('sms_logs').insert({
-      content: 'Diagnostic Test',
-      sender: 'SYSTEM',
-      status: 'ignored'
-    });
+    const db = getD1();
 
-    const { data: logs, error: logsError } = await supabase.from('sms_logs').select('*').order('created_at', { ascending: false }).limit(10);
+    await db.prepare(
+      `INSERT INTO sms_logs (content, sender, status) VALUES (?, ?, ?)`
+    ).bind('Diagnostic Test', 'SYSTEM', 'ignored').run();
+
+    const { results: logs } = await db.prepare(
+      `SELECT * FROM sms_logs ORDER BY created_at DESC LIMIT 10`
+    ).all();
+
     return NextResponse.json({ 
       status: "Webhook is reachable", 
-      insert_test: insertError ? "ERROR: " + insertError.message + " (Code: " + insertError.code + ")" : "SUCCESS",
-      table_status: logsError ? "ERROR: " + logsError.message : "SUCCESS",
+      insert_test: "SUCCESS",
+      table_status: "SUCCESS",
       recent_logs: logs || []
     });
   } catch (err) {

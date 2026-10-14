@@ -1,18 +1,7 @@
 "use server";
 
-import { createClient } from '@supabase/supabase-js';
 import { revalidatePath, unstable_noStore as noStore } from 'next/cache';
-
-// Use service-role-capable client for server-side writes
-// Falls back to anon key if service key not set (RLS must allow anon inserts)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-  {
-    auth: { persistSession: false },
-    global: { fetch: (url, init) => fetch(url, { ...init, cache: 'no-store' }) }
-  }
-);
+import { getD1 } from '../lib/d1';
 
 export async function saveSingleAccumAction(tier, acc) {
   // --- Validate inputs ---
@@ -21,11 +10,11 @@ export async function saveSingleAccumAction(tier, acc) {
     return null;
   }
 
+  const db = getD1();
+
   // Calculate total odds server-side for accuracy
   const totalOdds = acc.matches.reduce((prod, m) => prod * (isNaN(Number(m.odds)) ? 1 : Number(m.odds)), 1);
 
-  // Find the earliest kickoff to use as first_kickoff
-  // datetime-local gives "YYYY-MM-DDTHH:mm" — append :00Z if no timezone
   const toISO = (str) => {
     if (!str) return new Date().toISOString();
     return new Date(str).toISOString();
@@ -35,58 +24,66 @@ export async function saveSingleAccumAction(tier, acc) {
     .map(m => new Date(toISO(m.kickoff)).getTime())
     .reduce((earliest, t) => (t < earliest ? t : earliest), Infinity);
 
-  // --- Insert ticket row ---
-  const { data: accumData, error: accumError } = await supabase
-    .from('daily_accums')
-    .insert({
+  const dateToday = new Date().toISOString().slice(0, 10);
+  const firstKickoffIso = new Date(firstKickoff).toISOString();
+  const roundedOdds = Number(totalOdds.toFixed(2));
+  const bookingCode = acc.bookingCode || null;
+
+  try {
+    // 1. Insert ticket into daily_accums
+    const insertRes = await db.prepare(
+      `INSERT INTO daily_accums (tier, total_odds, date, first_kickoff, booking_code)
+       VALUES (?, ?, ?, ?, ?)`
+    ).bind(tier, roundedOdds, dateToday, firstKickoffIso, bookingCode).run();
+
+    const accumId = insertRes?.meta?.last_row_id;
+    if (!accumId) {
+      console.error("[saveSingleAccumAction] Error: Missing last_row_id after insert");
+      return null;
+    }
+
+    // 2. Insert matches into match_details
+    for (const m of acc.matches) {
+      await db.prepare(
+        `INSERT INTO match_details (
+          accum_id, home_team, away_team, league, flag, kickoff, market, pick, odds, confidence, analysis, is_hot, image_url
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        accumId,
+        m.h,
+        m.a,
+        m.lg || null,
+        m.fl || null,
+        toISO(m.kickoff),
+        m.mkt,
+        m.pick,
+        Number(m.odds),
+        Number(m.conf) || null,
+        m.analysis || null,
+        m.hot ? 1 : 0,
+        m.imageUrl || null
+      ).run();
+    }
+
+    console.log(`[saveSingleAccumAction] ✅ Saved ${tier} ticket (id: ${accumId})`);
+    revalidatePath('/', 'layout');
+    return {
+      id: accumId,
       tier,
-      total_odds: Number(totalOdds.toFixed(2)),
-      date: new Date().toISOString().slice(0, 10),
-      first_kickoff: new Date(firstKickoff).toISOString(),
-      booking_code: acc.bookingCode || null,
-    })
-    .select()
-    .single();
-
-  if (accumError) {
-    console.error("[saveSingleAccumAction] Error inserting daily_accums:", accumError);
+      total_odds: roundedOdds,
+      date: dateToday,
+      first_kickoff: firstKickoffIso,
+      booking_code: bookingCode
+    };
+  } catch (err) {
+    console.error("[saveSingleAccumAction] Database Error:", err);
     return null;
   }
-
-  // --- Insert match_details rows ---
-  const matchesToInsert = acc.matches.map(m => ({
-    accum_id: accumData.id,
-    home_team: m.h,
-    away_team: m.a,
-    league: m.lg,
-    flag: m.fl,
-    kickoff: toISO(m.kickoff),
-    market: m.mkt,
-    pick: m.pick,
-    odds: Number(m.odds),
-    confidence: Number(m.conf) || null,
-    analysis: m.analysis || null,
-    is_hot: Boolean(m.hot),
-  }));
-
-  const { error: matchError } = await supabase
-    .from('match_details')
-    .insert(matchesToInsert);
-
-  if (matchError) {
-    console.error("[saveSingleAccumAction] Error inserting match_details:", matchError);
-    // Roll back the accum row to keep DB consistent
-    await supabase.from('daily_accums').delete().eq('id', accumData.id);
-    return null;
-  }
-
-  console.log(`[saveSingleAccumAction] ✅ Saved ${tier} ticket (id: ${accumData.id})`);
-  revalidatePath('/', 'layout');
-  return accumData;
 }
 
 export async function getLatestAccumsAction(phone = null) {
   noStore();
+  const db = getD1();
   const tiers = ["free", "vip", "premium"];
   const results = {};
   const today = new Date().toISOString().slice(0, 10);
@@ -94,48 +91,41 @@ export async function getLatestAccumsAction(phone = null) {
   // Get unlocked status for this phone
   let unlockedTiers = [];
   if (phone) {
-    const { data: unlockedData } = await supabase
-      .from('unlocked_tickets')
-      .select('tier')
-      .eq('phone_number', phone)
-      .eq('date', today);
-    if (unlockedData) {
-      unlockedTiers = unlockedData.map(u => u.tier);
+    try {
+      const { results: unlockedData } = await db.prepare(
+        `SELECT tier FROM unlocked_tickets WHERE phone_number = ? AND date = ?`
+      ).bind(phone, today).all();
+
+      if (unlockedData) {
+        unlockedTiers = unlockedData.map(u => u.tier);
+      }
+    } catch (err) {
+      console.error("[getLatestAccumsAction] Error checking unlocked tickets:", err);
     }
   }
 
   for (const tier of tiers) {
-    const { data, error } = await supabase
-      .from('daily_accums')
-      .select(`
-        *,
-        matches:match_details(*)
-      `)
-      .eq('tier', tier)
-      .eq('date', today)
-      .order('created_at', { ascending: false });
+    try {
+      const { results: accumRows } = await db.prepare(
+        `SELECT * FROM daily_accums WHERE tier = ? AND date = ? ORDER BY created_at DESC`
+      ).bind(tier, today).all();
 
-    if (error) {
-      console.error(`[getLatestAccumsAction] Error fetching ${tier}:`, error);
-      continue;
-    }
+      if (accumRows && accumRows.length > 0) {
+        const isUnlocked = tier === "free" || unlockedTiers.includes(tier) || unlockedTiers.length > 0;
+        const now = new Date();
 
-    if (data && data.length > 0) {
-      const isUnlocked = tier === "free" || unlockedTiers.length > 0;
-      const now = new Date();
-      
-      const processedTickets = data
-        .filter(ticket => {
-          // Filter out expired tickets (if first_kickoff has passed)
+        const processedTickets = [];
+        for (const ticket of accumRows) {
           const kickTime = new Date(ticket.first_kickoff);
-          return kickTime > now;
-        })
-        .map(ticket => {
-          if (!ticket.matches) return ticket;
+          if (kickTime <= now) continue; // Filter out expired tickets
 
-          return {
+          const { results: matchRows } = await db.prepare(
+            `SELECT * FROM match_details WHERE accum_id = ? ORDER BY id ASC`
+          ).bind(ticket.id).all();
+
+          processedTickets.push({
             ...ticket,
-            matches: ticket.matches.map(m => ({
+            matches: (matchRows || []).map(m => ({
               id: m.id,
               h: m.home_team,
               a: m.away_team,
@@ -143,76 +133,88 @@ export async function getLatestAccumsAction(phone = null) {
               fl: m.flag,
               kickoff: m.kickoff,
               mkt: m.market,
-              // Shield data if not unlocked
               pick: isUnlocked ? m.pick : "🔒 LOCKED",
               odds: isUnlocked ? m.odds : "🔒",
               conf: isUnlocked ? m.confidence : null,
               analysis: isUnlocked ? m.analysis : "Please unlock to view expert analysis.",
-              hot: m.is_hot,
+              hot: Boolean(m.is_hot),
+              imageUrl: m.image_url || null,
             }))
-          };
-        });
+          });
+        }
 
-      if (processedTickets.length > 0) {
-        results[tier] = processedTickets;
+        if (processedTickets.length > 0) {
+          results[tier] = processedTickets;
+        }
       }
+    } catch (err) {
+      console.error(`[getLatestAccumsAction] Error fetching ${tier}:`, err);
     }
   }
 
   return results;
 }
 
-
 // ─── Admin: List ALL tickets (all tiers, all dates) ────────────────────
 export async function getAllAccumsAction() {
   noStore();
-  const { data, error } = await supabase
-    .from('daily_accums')
-    .select(`
-      *,
-      matches:match_details(*)
-    `)
-    .order('created_at', { ascending: false });
+  const db = getD1();
 
-  if (error) {
-    console.error('[getAllAccumsAction] Error:', error);
+  try {
+    const { results: accumRows } = await db.prepare(
+      `SELECT * FROM daily_accums ORDER BY created_at DESC`
+    ).all();
+
+    const ticketsWithMatches = [];
+    for (const row of (accumRows || [])) {
+      const { results: matchRows } = await db.prepare(
+        `SELECT * FROM match_details WHERE accum_id = ? ORDER BY id ASC`
+      ).bind(row.id).all();
+
+      ticketsWithMatches.push({
+        ...row,
+        matches: (matchRows || []).map(m => ({
+          id: m.id,
+          h: m.home_team,
+          a: m.away_team,
+          lg: m.league,
+          fl: m.flag,
+          kickoff: m.kickoff,
+          mkt: m.market,
+          pick: m.pick,
+          odds: m.odds,
+          conf: m.confidence,
+          analysis: m.analysis,
+          hot: Boolean(m.is_hot),
+          imageUrl: m.image_url || null,
+        })),
+      });
+    }
+
+    return ticketsWithMatches;
+  } catch (err) {
+    console.error('[getAllAccumsAction] Error:', err);
     return [];
   }
-
-  return (data || []).map(row => ({
-    ...row,
-    matches: (row.matches || []).map(m => ({
-      id: m.id,
-      h: m.home_team,
-      a: m.away_team,
-      lg: m.league,
-      fl: m.flag,
-      kickoff: m.kickoff,
-      mkt: m.market,
-      pick: m.pick,
-      odds: m.odds,
-      conf: m.confidence,
-      analysis: m.analysis,
-      hot: m.is_hot,
-    })),
-  }));
 }
 
 // ─── Admin: Delete a ticket (cascades to match_details) ───────────────
 export async function deleteAccumAction(accumId) {
-  // Delete match_details first (if no ON DELETE CASCADE)
-  await supabase.from('match_details').delete().eq('accum_id', accumId);
-  const { error } = await supabase.from('daily_accums').delete().eq('id', accumId);
-  if (error) {
-    console.error('[deleteAccumAction] Error:', error);
+  const db = getD1();
+  try {
+    await db.prepare(`DELETE FROM match_details WHERE accum_id = ?`).bind(accumId).run();
+    await db.prepare(`DELETE FROM daily_accums WHERE id = ?`).bind(accumId).run();
+    revalidatePath('/', 'layout');
+    return true;
+  } catch (err) {
+    console.error('[deleteAccumAction] Error:', err);
     return false;
   }
-  revalidatePath('/', 'layout');
-  return true;
 }
 
 // ─── Admin: Update a ticket's tier + matches ──────────────────────────
 export async function updateAccumAction(accumId, tier, matches, bookingCode) {
+  const db = getD1();
   const toISO = (str) => {
     if (!str) return new Date().toISOString();
     return new Date(str).toISOString();
@@ -223,197 +225,204 @@ export async function updateAccumAction(accumId, tier, matches, bookingCode) {
     .map(m => new Date(toISO(m.kickoff)).getTime())
     .reduce((earliest, t) => (t < earliest ? t : earliest), Infinity);
 
-  // Update the parent row
-  const { error: accumErr } = await supabase
-    .from('daily_accums')
-    .update({
+  try {
+    // 1. Update the parent row
+    await db.prepare(
+      `UPDATE daily_accums
+       SET tier = ?, total_odds = ?, first_kickoff = ?, booking_code = ?
+       WHERE id = ?`
+    ).bind(
       tier,
-      total_odds: Number(totalOdds.toFixed(2)),
-      first_kickoff: new Date(firstKickoff).toISOString(),
-      booking_code: bookingCode || null,
-    })
-    .eq('id', accumId);
+      Number(totalOdds.toFixed(2)),
+      new Date(firstKickoff).toISOString(),
+      bookingCode || null,
+      accumId
+    ).run();
 
-  if (accumErr) {
-    console.error('[updateAccumAction] Error updating daily_accums:', accumErr);
+    // 2. Replace match_details
+    await db.prepare(`DELETE FROM match_details WHERE accum_id = ?`).bind(accumId).run();
+
+    for (const m of matches) {
+      await db.prepare(
+        `INSERT INTO match_details (
+          accum_id, home_team, away_team, league, flag, kickoff, market, pick, odds, confidence, analysis, is_hot, image_url
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).bind(
+        accumId,
+        m.h,
+        m.a,
+        m.lg || null,
+        m.fl || null,
+        toISO(m.kickoff),
+        m.mkt,
+        m.pick,
+        Number(m.odds),
+        Number(m.conf) || null,
+        m.analysis || null,
+        m.hot ? 1 : 0,
+        m.imageUrl || null
+      ).run();
+    }
+
+    revalidatePath('/', 'layout');
+    return true;
+  } catch (err) {
+    console.error('[updateAccumAction] Error:', err);
     return false;
   }
-
-  // Replace match_details
-  await supabase.from('match_details').delete().eq('accum_id', accumId);
-  const toInsert = matches.map(m => ({
-    accum_id: accumId,
-    home_team: m.h,
-    away_team: m.a,
-    league: m.lg,
-    flag: m.fl,
-    kickoff: toISO(m.kickoff),
-    market: m.mkt,
-    pick: m.pick,
-    odds: Number(m.odds),
-    confidence: Number(m.conf) || null,
-    analysis: m.analysis || null,
-    is_hot: Boolean(m.hot),
-  }));
-
-  const { error: matchErr } = await supabase.from('match_details').insert(toInsert);
-  if (matchErr) {
-    console.error('[updateAccumAction] Error updating match_details:', matchErr);
-    return false;
-  }
-  revalidatePath('/', 'layout');
-  return true;
 }
 
-export async function requestPaymentAction(phone, method, tier, price, trId) {
-  const { data, error } = await supabase
-    .from('payment_requests')
-    .insert({
-      phone_number: phone,
-      method,
-      tier,
-      amount: price,
-      transaction_id: trId ? trId.trim().toUpperCase() : null,
-      status: 'pending',
-      date: new Date().toISOString().slice(0, 10),
-    })
-    .select()
-    .single();
+export async function requestPaymentAction(phone, method, tier, price, trId, receiptUrl = null) {
+  const db = getD1();
+  const today = new Date().toISOString().slice(0, 10);
+  const cleanTrId = trId ? trId.trim().toUpperCase() : null;
 
-  if (error) {
-    console.error("[requestPaymentAction] Error:", error);
-    return { success: false, error };
+  try {
+    const res = await db.prepare(
+      `INSERT INTO payment_requests (phone_number, method, tier, amount, transaction_id, receipt_url, status, date)
+       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`
+    ).bind(phone, method, tier, price, cleanTrId, receiptUrl, today).run();
+
+    const insertId = res?.meta?.last_row_id;
+    return {
+      success: true,
+      data: {
+        id: insertId,
+        phone_number: phone,
+        method,
+        tier,
+        amount: price,
+        transaction_id: cleanTrId,
+        receipt_url: receiptUrl,
+        status: 'pending',
+        date: today
+      }
+    };
+  } catch (err) {
+    console.error("[requestPaymentAction] Error:", err);
+    return { success: false, error: err.message };
   }
-  return { success: true, data };
 }
 
 export async function verifyPaymentAction(requestId) {
-  // 1. Get the request details
-  const { data: req, error: fetchErr } = await supabase
-    .from('payment_requests')
-    .select('*')
-    .eq('id', requestId)
-    .single();
+  const db = getD1();
+  try {
+    // 1. Get the request details
+    const req = await db.prepare(
+      `SELECT * FROM payment_requests WHERE id = ?`
+    ).bind(requestId).first();
 
-  if (fetchErr || !req) {
-    console.error("[verifyPaymentAction] Fetch Error:", fetchErr);
+    if (!req) {
+      console.error("[verifyPaymentAction] Fetch Error: Request not found");
+      return false;
+    }
+
+    // 2. Update request status
+    await db.prepare(
+      `UPDATE payment_requests SET status = 'verified' WHERE id = ?`
+    ).bind(requestId).run();
+
+    // 3. Unlock ticket
+    const today = new Date().toISOString().slice(0, 10);
+    await db.prepare(
+      `INSERT OR IGNORE INTO unlocked_tickets (phone_number, tier, date) VALUES (?, ?, ?)`
+    ).bind(req.phone_number, req.tier, today).run();
+
+    return true;
+  } catch (err) {
+    console.error("[verifyPaymentAction] Error:", err);
     return false;
   }
-
-  // 2. Update request status
-  const { error: updateErr } = await supabase
-    .from('payment_requests')
-    .update({ status: 'verified' })
-    .eq('id', requestId);
-
-  if (updateErr) {
-    console.error("[verifyPaymentAction] Update Error:", updateErr);
-    return false;
-  }
-
-  const today = new Date().toISOString().slice(0, 10);
-  const { error: unlockErr } = await supabase
-    .from('unlocked_tickets')
-    .insert({
-      phone_number: req.phone_number,
-      tier: req.tier,
-      date: today
-    });
-
-  if (unlockErr) {
-    if (unlockErr.code === '23505') return true; // Already unlocked
-    console.error("[verifyPaymentAction] Unlock Error:", unlockErr);
-    return false;
-  }
-
-  return true;
 }
 
 export async function checkUnlockStatusAction(phone) {
+  const db = getD1();
   const today = new Date().toISOString().slice(0, 10);
-  const { data, error } = await supabase
-    .from('unlocked_tickets')
-    .select('*')
-    .eq('phone_number', phone)
-    .eq('date', today)
-    .limit(1)
-    .maybeSingle();
 
-  if (error || !data) return false;
-  return true;
+  try {
+    const row = await db.prepare(
+      `SELECT id FROM unlocked_tickets WHERE phone_number = ? AND date = ? LIMIT 1`
+    ).bind(phone, today).first();
+
+    return Boolean(row);
+  } catch (err) {
+    console.error("[checkUnlockStatusAction] Error:", err);
+    return false;
+  }
 }
 
 export async function getPaymentRequestsAction() {
-  const { data, error } = await supabase
-    .from('payment_requests')
-    .select('*')
-    .order('created_at', { ascending: false });
-
-  if (error) {
-    console.error("[getPaymentRequestsAction] Error:", error);
+  const db = getD1();
+  try {
+    const { results } = await db.prepare(
+      `SELECT * FROM payment_requests ORDER BY created_at DESC`
+    ).all();
+    return results || [];
+  } catch (err) {
+    console.error("[getPaymentRequestsAction] Error:", err);
     return [];
   }
-  return data || [];
 }
 
 export async function getSmsLogsAction() {
-  const { data, error } = await supabase
-    .from('sms_logs')
-    .select('*')
-    .order('created_at', { ascending: false })
-    .limit(50);
-
-  if (error) {
-    console.error("[getSmsLogsAction] Error:", error);
+  const db = getD1();
+  try {
+    const { results } = await db.prepare(
+      `SELECT * FROM sms_logs ORDER BY created_at DESC LIMIT 50`
+    ).all();
+    return results || [];
+  } catch (err) {
+    console.error("[getSmsLogsAction] Error:", err);
     return [];
   }
-  return data || [];
 }
 
 export async function getPerformanceResultsAction() {
+  const db = getD1();
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-  const { data, error } = await supabase
-    .from('performance_results')
-    .select('*')
-    .gte('created_at', sevenDaysAgo.toISOString())
-    .order('created_at', { ascending: false });
+  try {
+    const { results } = await db.prepare(
+      `SELECT * FROM performance_results WHERE created_at >= ? ORDER BY created_at DESC`
+    ).bind(sevenDaysAgo.toISOString()).all();
 
-  if (error) {
-    console.error("[getPerformanceResultsAction] Error:", error);
+    return results || [];
+  } catch (err) {
+    console.error("[getPerformanceResultsAction] Error:", err);
     return [];
   }
-  return data || [];
 }
 
 export async function addPerformanceResultAction(tier, status, odds) {
-  const { data, error } = await supabase
-    .from('performance_results')
-    .insert({
-      tier,
-      status,
-      odds: odds ? Number(odds) : null,
-    })
-    .select()
-    .single();
+  const db = getD1();
+  try {
+    const res = await db.prepare(
+      `INSERT INTO performance_results (tier, status, odds) VALUES (?, ?, ?)`
+    ).bind(tier, status, odds ? Number(odds) : null).run();
 
-  if (error) {
-    console.error("[addPerformanceResultAction] Error:", error);
-    return { success: false, error };
+    return {
+      success: true,
+      data: {
+        id: res?.meta?.last_row_id,
+        tier,
+        status,
+        odds
+      }
+    };
+  } catch (err) {
+    console.error("[addPerformanceResultAction] Error:", err);
+    return { success: false, error: err.message };
   }
-  return { success: true, data };
 }
 
 export async function deletePerformanceResultAction(id) {
-  const { error } = await supabase
-    .from('performance_results')
-    .delete()
-    .eq('id', id);
-
-  if (error) {
-    console.error("[deletePerformanceResultAction] Error:", error);
+  const db = getD1();
+  try {
+    await db.prepare(`DELETE FROM performance_results WHERE id = ?`).bind(id).run();
+    return true;
+  } catch (err) {
+    console.error("[deletePerformanceResultAction] Error:", err);
     return false;
   }
-  return true;
 }
