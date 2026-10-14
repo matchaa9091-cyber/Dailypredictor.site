@@ -308,6 +308,7 @@ function AccumCard({ accum, dark, t }) {
   const [unlocked, setUnlocked] = useState(accum.tier === "free");
   const [payOpen, setPayOpen] = useState(false);
   const [activeAnalysis, setActiveAnalysis] = useState(null);
+  const [showAllMatches, setShowAllMatches] = useState(false);
 
   useEffect(() => {
     const checkStatus = async () => {
@@ -371,8 +372,8 @@ function AccumCard({ accum, dark, t }) {
         <PayScreen accum={accum} t={t} dark={dark} onBack={() => setPayOpen(false)} onPaid={handlePaid} />
       ) : (
         <>
-          {(accum.matches || []).map((m, i) => (
-            <div key={m.id} style={{ borderBottom: `1px solid ${t.border}`, padding: "15px 20px" }}>
+          {(accum.matches || []).filter((_, i) => showAllMatches || i === 0).map((m, i) => (
+            <div key={m.id} style={{ borderBottom: `1px solid ${t.border}`, padding: "15px 20px", animation: i > 0 ? "fadeUp 0.35s ease" : undefined }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
                   <span>{m.fl}</span>
@@ -419,6 +420,31 @@ function AccumCard({ accum, dark, t }) {
               )}
             </div>
           ))}
+
+          {/* Show All / Show Less Toggle — only when there are more than 1 match */}
+          {(accum.matches || []).length > 1 && (
+            <div style={{ borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "center", padding: "12px 20px" }}>
+              <button
+                onClick={() => setShowAllMatches(prev => !prev)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  background: showAllMatches ? "transparent" : `${cfg.color}18`,
+                  border: `1.5px solid ${cfg.color}55`,
+                  borderRadius: 30, padding: "9px 22px", cursor: "pointer",
+                  fontFamily: "'Outfit',sans-serif", fontWeight: 900,
+                  fontSize: 12, color: cfg.color,
+                  transition: "all 0.2s",
+                  letterSpacing: 0.5,
+                }}
+              >
+                {showAllMatches ? (
+                  <><span>▲</span>&nbsp;Show Less</>
+                ) : (
+                  <><span>▼</span>&nbsp;Show All {(accum.matches || []).length} Matches</>
+                )}
+              </button>
+            </div>
+          )}
 
           <div style={{ padding: "16px 20px", background: dark ? `${cfg.color}06` : `${cfg.color}0A`, borderBottom: `1px solid ${t.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             <div>
