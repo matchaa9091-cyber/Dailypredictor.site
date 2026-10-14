@@ -13,6 +13,7 @@ import {
   addPerformanceResultAction,
   deletePerformanceResultAction,
 } from "../../actions";
+import { parseBetPawaText } from "@/lib/betpawa-parser";
 
 // ─── Design tokens ───────────────────────────────────────────────────────────
 const DARK = {
@@ -83,6 +84,180 @@ function Input({ label, value, onChange, type = "text" }) {
         onChange={(e) => onChange(e.target.value)}
         style={inputStyle}
       />
+    </div>
+  );
+}
+
+// ─── Sub-component: BetPawa auto-fill & booking code importer ────────────────
+function BetPawaImporter({ onImport, bookingCode, onBookingCodeChange }) {
+  const [openPaste, setOpenPaste] = useState(false);
+  const [pasteText, setPasteText] = useState("");
+  const [fetching, setFetching] = useState(false);
+  const [statusMsg, setStatusMsg] = useState("");
+
+  const handleFetchCode = async () => {
+    const code = (bookingCode || "").trim().toUpperCase();
+    if (!code) {
+      setStatusMsg("⚠️ Please enter a booking code first.");
+      return;
+    }
+    setFetching(true);
+    setStatusMsg("🔍 Checking BetPawa for code " + code + "...");
+    try {
+      const res = await fetch(`/api/betpawa-lookup?code=${encodeURIComponent(code)}`);
+      const data = await res.json();
+      if (data.success && data.matches?.length > 0) {
+        onImport(data.matches, data.bookingCode || code);
+        setStatusMsg(`✅ Successfully imported ${data.matches.length} matches from BetPawa!`);
+      } else {
+        setStatusMsg("ℹ️ " + (data.suggestion || data.error || "Direct code lookup unavailable. Use 'Paste Slip' below."));
+        setOpenPaste(true);
+      }
+    } catch (e) {
+      setStatusMsg("⚠️ Network error. Use 'Paste Slip' below.");
+      setOpenPaste(true);
+    }
+    setFetching(false);
+  };
+
+  const handleParseText = () => {
+    if (!pasteText.trim()) {
+      setStatusMsg("⚠️ Paste your BetPawa slip text or WhatsApp share message first.");
+      return;
+    }
+    const result = parseBetPawaText(pasteText);
+    if (result.matches && result.matches.length > 0) {
+      const code = result.bookingCode || bookingCode;
+      if (code) onBookingCodeChange(code);
+      onImport(result.matches, code);
+      setStatusMsg(`✅ Successfully auto-filled ${result.matches.length} match(es)${code ? ` (Code: ${code})` : ""}!`);
+      setPasteText("");
+    } else {
+      setStatusMsg("❌ Could not parse matches from text. Check format (e.g. 'Arsenal vs Chelsea') and try again.");
+    }
+  };
+
+  return (
+    <div style={{
+      background: DARK.surface2,
+      border: `1.5px solid ${DARK.green}44`,
+      borderRadius: 14,
+      padding: "16px 18px",
+      marginBottom: 24,
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <span style={{ fontSize: 16 }}>⚡</span>
+          <span style={{ fontSize: 13, fontWeight: 900, color: DARK.green, letterSpacing: 0.5 }}>
+            BETPAWA INSTANT AUTO-FILL
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={() => setOpenPaste(!openPaste)}
+          style={{
+            background: openPaste ? `${DARK.green}22` : "none",
+            border: `1px solid ${openPaste ? DARK.green : DARK.border}`,
+            borderRadius: 8,
+            color: openPaste ? DARK.green : DARK.textDim,
+            fontSize: 11,
+            fontWeight: 800,
+            padding: "5px 12px",
+            cursor: "pointer",
+          }}
+        >
+          {openPaste ? "▲ Hide Paste Box" : "📋 Paste Slip / Text"}
+        </button>
+      </div>
+
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-end", marginBottom: openPaste ? 14 : 0 }}>
+        <div style={{ flex: 1 }}>
+          <label style={{ display: "block", fontSize: 10, color: DARK.textDim, marginBottom: 4, fontWeight: 700 }}>
+            BETPAWA BOOKING CODE
+          </label>
+          <input
+            type="text"
+            placeholder="e.g. 7AB8CD"
+            value={bookingCode}
+            onChange={(e) => onBookingCodeChange(e.target.value.toUpperCase())}
+            style={inputStyle}
+          />
+        </div>
+        <button
+          type="button"
+          onClick={handleFetchCode}
+          disabled={fetching}
+          style={{
+            padding: "11px 18px",
+            background: DARK.green,
+            color: "#000",
+            border: "none",
+            borderRadius: 8,
+            fontFamily: "'Russo One', sans-serif",
+            fontSize: 12,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {fetching ? "FETCHING…" : "⚡ FETCH CODE"}
+        </button>
+      </div>
+
+      {openPaste && (
+        <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${DARK.border}` }}>
+          <label style={{ display: "block", fontSize: 10, color: DARK.textDim, marginBottom: 4, fontWeight: 700 }}>
+            PASTE BETPAWA BETSLIP / SHARE TEXT
+          </label>
+          <textarea
+            value={pasteText}
+            onChange={(e) => setPasteText(e.target.value)}
+            placeholder={`Paste text copied from BetPawa betslip or WhatsApp share message. Example:
+1. Arsenal vs Chelsea
+Pick: 1 (1.85)
+Premier League
+
+Booking Code: 7AB8CD`}
+            style={{
+              ...inputStyle,
+              height: 100,
+              resize: "vertical",
+              fontFamily: "monospace",
+              fontSize: 12,
+              lineHeight: 1.4,
+              marginBottom: 10,
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleParseText}
+            style={{
+              width: "100%",
+              padding: "11px",
+              background: `${DARK.green}22`,
+              border: `1.5px solid ${DARK.green}`,
+              color: DARK.green,
+              borderRadius: 8,
+              fontFamily: "'Russo One', sans-serif",
+              fontSize: 13,
+              cursor: "pointer",
+            }}
+          >
+            ✨ AUTO-FILL ALL MATCHES
+          </button>
+        </div>
+      )}
+
+      {statusMsg && (
+        <div style={{
+          marginTop: 10,
+          fontSize: 11,
+          fontWeight: 800,
+          color: statusMsg.startsWith("✅") ? DARK.green : statusMsg.startsWith("⚠️") ? DARK.amber : statusMsg.startsWith("🔍") ? DARK.blue : DARK.red,
+          lineHeight: 1.4,
+        }}>
+          {statusMsg}
+        </div>
+      )}
     </div>
   );
 }
@@ -234,9 +409,14 @@ function EditModal({ accum, onClose, onSaved }) {
           </div>
         </div>
 
-        <div style={{ marginBottom: 22 }}>
-          <Input label="BETPAWA BOOKING CODE (Optional)" value={bookingCode} onChange={setBookingCode} />
-        </div>
+        <BetPawaImporter
+          bookingCode={bookingCode}
+          onBookingCodeChange={setBookingCode}
+          onImport={(newMatches, newCode) => {
+            if (newMatches && newMatches.length > 0) setMatches(newMatches);
+            if (newCode) setBookingCode(newCode);
+          }}
+        />
 
         {/* Matches */}
         {matches.map((m, i) => (
@@ -609,9 +789,14 @@ function AdminDashboard() {
               ))}
             </div>
           </div>
-          <div style={{ marginBottom: 25 }}>
-            <Input label="BETPAWA BOOKING CODE (Optional)" value={bookingCode} onChange={setBookingCode} />
-          </div>
+          <BetPawaImporter
+            bookingCode={bookingCode}
+            onBookingCodeChange={setBookingCode}
+            onImport={(newMatches, newCode) => {
+              if (newMatches && newMatches.length > 0) setMatches(newMatches);
+              if (newCode) setBookingCode(newCode);
+            }}
+          />
           {matches.map((m, i) => (
             <MatchCard key={i} match={m} index={i} total={matches.length} onUpdate={updateMatch} onRemove={removeMatch} />
           ))}
