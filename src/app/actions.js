@@ -10,7 +10,7 @@ export async function saveSingleAccumAction(tier, acc) {
     return null;
   }
 
-  const db = getD1();
+  const db = await getD1();
 
   // Calculate total odds server-side for accuracy
   const totalOdds = acc.matches.reduce((prod, m) => prod * (isNaN(Number(m.odds)) ? 1 : Number(m.odds)), 1);
@@ -83,7 +83,7 @@ export async function saveSingleAccumAction(tier, acc) {
 
 export async function getLatestAccumsAction(phone = null) {
   noStore();
-  const db = getD1();
+  const db = await getD1();
   const tiers = ["free", "vip", "premium"];
   const results = {};
   const today = new Date().toISOString().slice(0, 10);
@@ -158,7 +158,7 @@ export async function getLatestAccumsAction(phone = null) {
 // ─── Admin: List ALL tickets (all tiers, all dates) ────────────────────
 export async function getAllAccumsAction() {
   noStore();
-  const db = getD1();
+  const db = await getD1();
 
   try {
     const { results: accumRows } = await db.prepare(
@@ -200,7 +200,7 @@ export async function getAllAccumsAction() {
 
 // ─── Admin: Delete a ticket (cascades to match_details) ───────────────
 export async function deleteAccumAction(accumId) {
-  const db = getD1();
+  const db = await getD1();
   try {
     await db.prepare(`DELETE FROM match_details WHERE accum_id = ?`).bind(accumId).run();
     await db.prepare(`DELETE FROM daily_accums WHERE id = ?`).bind(accumId).run();
@@ -214,7 +214,7 @@ export async function deleteAccumAction(accumId) {
 
 // ─── Admin: Update a ticket's tier + matches ──────────────────────────
 export async function updateAccumAction(accumId, tier, matches, bookingCode) {
-  const db = getD1();
+  const db = await getD1();
   const toISO = (str) => {
     if (!str) return new Date().toISOString();
     return new Date(str).toISOString();
@@ -273,7 +273,7 @@ export async function updateAccumAction(accumId, tier, matches, bookingCode) {
 }
 
 export async function requestPaymentAction(phone, method, tier, price, trId, receiptUrl = null) {
-  const db = getD1();
+  const db = await getD1();
   const today = new Date().toISOString().slice(0, 10);
   const cleanTrId = trId ? trId.trim().toUpperCase() : null;
 
@@ -305,7 +305,7 @@ export async function requestPaymentAction(phone, method, tier, price, trId, rec
 }
 
 export async function verifyPaymentAction(requestId) {
-  const db = getD1();
+  const db = await getD1();
   try {
     // 1. Get the request details
     const req = await db.prepare(
@@ -336,7 +336,7 @@ export async function verifyPaymentAction(requestId) {
 }
 
 export async function checkUnlockStatusAction(phone) {
-  const db = getD1();
+  const db = await getD1();
   const today = new Date().toISOString().slice(0, 10);
 
   try {
@@ -352,7 +352,7 @@ export async function checkUnlockStatusAction(phone) {
 }
 
 export async function getPaymentRequestsAction() {
-  const db = getD1();
+  const db = await getD1();
   try {
     const { results } = await db.prepare(
       `SELECT * FROM payment_requests ORDER BY created_at DESC`
@@ -365,7 +365,7 @@ export async function getPaymentRequestsAction() {
 }
 
 export async function getSmsLogsAction() {
-  const db = getD1();
+  const db = await getD1();
   try {
     const { results } = await db.prepare(
       `SELECT * FROM sms_logs ORDER BY created_at DESC LIMIT 50`
@@ -378,7 +378,7 @@ export async function getSmsLogsAction() {
 }
 
 export async function getPerformanceResultsAction() {
-  const db = getD1();
+  const db = await getD1();
   const sevenDaysAgo = new Date();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
@@ -395,7 +395,7 @@ export async function getPerformanceResultsAction() {
 }
 
 export async function addPerformanceResultAction(tier, status, odds) {
-  const db = getD1();
+  const db = await getD1();
   try {
     const res = await db.prepare(
       `INSERT INTO performance_results (tier, status, odds) VALUES (?, ?, ?)`
@@ -417,7 +417,7 @@ export async function addPerformanceResultAction(tier, status, odds) {
 }
 
 export async function deletePerformanceResultAction(id) {
-  const db = getD1();
+  const db = await getD1();
   try {
     await db.prepare(`DELETE FROM performance_results WHERE id = ?`).bind(id).run();
     return true;

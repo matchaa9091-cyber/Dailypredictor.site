@@ -1,15 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getD1 } from '../../../../lib/d1';
 
-export const runtime = 'edge';
-
 // Secret key used to verify requests coming from httpsms.com webhook
 // Set this in your httpsms.com webhook headers as: X-Api-Key: Danvid_API_Key_256
 const SECRET_WEBHOOK_KEY = "Danvid_API_Key_256";
 
 export async function POST(req) {
   try {
-    const db = getD1();
+    const db = await getD1();
 
     // ── Security: check header or query key ──────────────────────
     const { searchParams } = new URL(req.url);
@@ -131,7 +129,7 @@ export async function POST(req) {
 // ── Debugging Help: Visit this URL in your browser to see if the table is working
 export async function GET(req) {
   try {
-    const db = getD1();
+    const db = await getD1();
 
     await db.prepare(
       `INSERT INTO sms_logs (content, sender, status) VALUES (?, ?, ?)`

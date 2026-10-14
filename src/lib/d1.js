@@ -1,18 +1,24 @@
-import { getRequestContext } from '@cloudflare/next-on-pages';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 /**
  * Retrieves the Cloudflare D1 database instance.
- * Prioritizes the Edge request context (Cloudflare Pages),
- * with a fallback to the Cloudflare D1 REST API for local node environments if tokens are supplied.
+ * Uses OpenNext getCloudflareContext({ async: true }) for full compatibility.
  */
-export function getD1() {
+export async function getD1() {
   try {
-    const ctx = getRequestContext();
+    const ctx = await getCloudflareContext({ async: true });
     if (ctx && ctx.env && ctx.env.DB) {
       return ctx.env.DB;
     }
   } catch {
-    // getRequestContext can throw outside of Cloudflare edge request context
+    try {
+      const ctx = getCloudflareContext();
+      if (ctx && ctx.env && ctx.env.DB) {
+        return ctx.env.DB;
+      }
+    } catch {
+      // Outside of Cloudflare context
+    }
   }
 
   // Fallback for local development via Cloudflare D1 REST API
@@ -75,5 +81,5 @@ export function getD1() {
     };
   }
 
-  throw new Error("Cloudflare D1 is not available. Please ensure env.DB is bound in wrangler.toml or CLOUDFLARE_API_TOKEN is provided.");
+  throw new Error("Cloudflare D1 is not available. Please ensure env.DB is bound in wrangler.jsonc or CLOUDFLARE_API_TOKEN is provided.");
 }

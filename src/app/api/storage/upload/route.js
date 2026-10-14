@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getR2Bucket, uploadToR2 } from '../../../../lib/storage';
 
-export const runtime = 'edge';
-
 // ── POST /api/storage/upload ────────────────────────────────────────────────
 // Accepts multipart/form-data with a "file" field and optional "folder"
 export async function POST(req) {
   try {
-    const bucket = getR2Bucket();
+    const bucket = await getR2Bucket();
     if (!bucket) {
       return NextResponse.json({ error: "R2 bucket not available in request context" }, { status: 503 });
     }

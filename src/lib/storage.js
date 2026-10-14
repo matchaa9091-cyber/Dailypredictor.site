@@ -1,16 +1,23 @@
-import { getRequestContext } from '@cloudflare/next-on-pages';
+import { getCloudflareContext } from '@opennextjs/cloudflare';
 
 /**
- * Retrieves the Cloudflare R2 bucket instance from the Edge request context.
+ * Retrieves the Cloudflare R2 bucket instance from the Cloudflare context.
  */
-export function getR2Bucket() {
+export async function getR2Bucket() {
   try {
-    const ctx = getRequestContext();
+    const ctx = await getCloudflareContext({ async: true });
     if (ctx && ctx.env && ctx.env.BUCKET) {
       return ctx.env.BUCKET;
     }
   } catch {
-    // Outside of edge context
+    try {
+      const ctx = getCloudflareContext();
+      if (ctx && ctx.env && ctx.env.BUCKET) {
+        return ctx.env.BUCKET;
+      }
+    } catch {
+      // Outside of Cloudflare context
+    }
   }
   return null;
 }
@@ -19,7 +26,7 @@ export function getR2Bucket() {
  * Uploads an ArrayBuffer/Blob/ReadableStream to Cloudflare R2
  */
 export async function uploadToR2(key, data, contentType = 'application/octet-stream') {
-  const bucket = getR2Bucket();
+  const bucket = await getR2Bucket();
   if (!bucket) {
     throw new Error("R2 BUCKET binding not found in request context.");
   }
@@ -34,7 +41,7 @@ export async function uploadToR2(key, data, contentType = 'application/octet-str
  * Retrieves an object from Cloudflare R2
  */
 export async function getFromR2(key) {
-  const bucket = getR2Bucket();
+  const bucket = await getR2Bucket();
   if (!bucket) {
     throw new Error("R2 BUCKET binding not found in request context.");
   }
@@ -45,7 +52,7 @@ export async function getFromR2(key) {
  * Deletes an object from Cloudflare R2
  */
 export async function deleteFromR2(key) {
-  const bucket = getR2Bucket();
+  const bucket = await getR2Bucket();
   if (!bucket) {
     throw new Error("R2 BUCKET binding not found in request context.");
   }

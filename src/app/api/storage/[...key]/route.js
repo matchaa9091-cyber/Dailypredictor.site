@@ -1,13 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getR2Bucket, uploadToR2, deleteFromR2 } from '../../../../lib/storage';
 
-export const runtime = 'edge';
-
 // ── GET /api/storage/[...key] ────────────────────────────────────────────────
 // Streams the object directly from the Cloudflare R2 bucket to the client.
 export async function GET(req, { params }) {
   try {
-    const bucket = getR2Bucket();
+    const bucket = await getR2Bucket();
     if (!bucket) {
       return NextResponse.json({ error: "R2 bucket not available" }, { status: 503 });
     }
@@ -36,7 +34,7 @@ export async function GET(req, { params }) {
 // Uploads a file to R2 at the specified key.
 export async function POST(req, { params }) {
   try {
-    const bucket = getR2Bucket();
+    const bucket = await getR2Bucket();
     if (!bucket) {
       return NextResponse.json({ error: "R2 bucket not available" }, { status: 503 });
     }
@@ -64,7 +62,7 @@ export async function POST(req, { params }) {
 // ── DELETE /api/storage/[...key] ─────────────────────────────────────────────
 export async function DELETE(req, { params }) {
   try {
-    const bucket = getR2Bucket();
+    const bucket = await getR2Bucket();
     if (!bucket) {
       return NextResponse.json({ error: "R2 bucket not available" }, { status: 503 });
     }
