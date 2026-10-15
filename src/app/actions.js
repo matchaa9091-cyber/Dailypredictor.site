@@ -326,12 +326,32 @@ export async function requestPaymentAction(phone, method, tier, price, trId = nu
     // 2. Check if an UNCLAIMED SMS from this sender has already arrived today in sms_logs
     let matchingSms = null;
     if (cleanPhone) {
-      matchingSms = await db.prepare(
-        `SELECT id, content FROM sms_logs 
+      const candidates = await db.prepare(
+        `SELECT id, content, sender FROM sms_logs 
          WHERE status = 'processing' 
            AND (content LIKE ? OR sender LIKE ?)
-         ORDER BY created_at DESC LIMIT 1`
-      ).bind(`%${cleanPhone}%`, `%${cleanPhone}%`).first();
+         ORDER BY created_at DESC LIMIT 5`
+      ).bind(`%${cleanPhone}%`, `%${cleanPhone}%`).all();
+
+      if (candidates?.results?.length > 0) {
+        for (const sms of candidates.results) {
+          // Verify that this SMS was from an official telecom sender, not a personal phone
+          const cleanSender = (sms.sender || "").trim();
+          const isPersonal = /^(?:\+?256|0)?7\d{8}$/.test(cleanSender.replace(/[\s-]/g, '')) || /^\+?\d{9,15}$/.test(cleanSender.replace(/[\s-]/g, ''));
+          const isTelecom = /momo|mobilemoney|mtn|165/i.test(cleanSender);
+          if (isPersonal || !isTelecom) continue;
+
+          // Verify the amount in the SMS meets or exceeds the ticket price
+          const amountMatch = sms.content.match(/(?:UGX|SHS?)\.?\s*([\d,]+)|([\d,]+)\s*(?:UGX|SHS?)/i);
+          const amountStr = amountMatch ? (amountMatch[1] || amountMatch[2]) : null;
+          const smsAmount = amountStr ? parseInt(amountStr.replace(/,/g, '')) : null;
+
+          if (smsAmount === null || smsAmount >= price) {
+            matchingSms = sms;
+            break;
+          }
+        }
+      }
     }
 
     const isAlreadyPaid = Boolean(matchingSms);

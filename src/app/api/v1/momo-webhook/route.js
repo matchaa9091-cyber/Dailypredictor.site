@@ -54,6 +54,35 @@ export async function POST(req) {
 
     console.log(`[Webhook] 📩 SMS from ${sender}: ${content.substring(0, 80)}...`);
 
+    // ── Security Check 1: Block Fake SMS from Personal Phone Numbers ──────────
+    // Legitimate MoMo SMS comes from official telecom sender IDs (e.g. MTNMoMo, MobileMoney, 165)
+    // If sender is a personal mobile number (+256..., 07..., or digits), it's a personal text!
+    const cleanSender = (sender || "").trim();
+    const isPersonalNumber = /^(?:\+?256|0)?7\d{8}$/.test(cleanSender.replace(/[\s-]/g, '')) || /^\+?\d{9,15}$/.test(cleanSender.replace(/[\s-]/g, ''));
+    const isTelecomSender = /momo|mobilemoney|mtn|165/i.test(cleanSender);
+
+    if (isPersonalNumber || !isTelecomSender) {
+      console.warn(`[Webhook] ⛔ FAKE SMS BLOCKED: Message came from personal/unauthorized sender '${sender}' instead of official MTN network!`);
+      await db.prepare(
+        `INSERT INTO sms_logs (content, sender, status) VALUES (?, ?, 'fake_rejected')`
+      ).bind(content, sender).run();
+
+      return NextResponse.json({
+        success: false,
+        error: "Rejected: SMS came from a personal number, not the official MTN Mobile Money network."
+      }, { status: 400 });
+    }
+
+    // ── Security Check 2: Check for Payment Received Keywords ─────────────────
+    const isPaymentNotification = /(?:received|transferred|credited|yello)/i.test(content);
+    if (!isPaymentNotification) {
+      console.log("[Webhook] SMS does not contain payment received keywords — ignored.");
+      await db.prepare(
+        `INSERT INTO sms_logs (content, sender, status) VALUES (?, ?, 'ignored')`
+      ).bind(content, sender).run();
+      return NextResponse.json({ message: "Not a payment received SMS" });
+    }
+
     // ── RegEx: Extract Sender Phone Number (Uganda 9-digit format) ─────────
     // Matches "from 2567XXXXXXXX", "from 07XXXXXXXX", "(2567XXXXXXXX)", etc.
     let payerPhone = null;
@@ -128,6 +157,20 @@ export async function POST(req) {
     }
 
     if (request) {
+      // ── Security Check 3: Full Amount Verification ──────────────────────────
+      if (amount !== null && request.amount && amount < request.amount) {
+        console.warn(`[Webhook] ⛔ UNDERPAYMENT: Ticket costs UGX ${request.amount}, but only UGX ${amount} received.`);
+        if (logId) {
+          await db.prepare(`UPDATE sms_logs SET status = 'underpaid' WHERE id = ?`).bind(logId).run();
+        }
+        return NextResponse.json({
+          success: false,
+          error: `Payment underpaid. Received UGX ${amount}, but required price is UGX ${request.amount}.`,
+          received: amount,
+          required: request.amount
+        }, { status: 400 });
+      }
+
       console.log(`[Webhook] ✅ MATCH! Auto-verifying request for ${request.phone_number} (${request.tier}, device: ${request.device_id || 'none'})`);
 
       const today = new Date().toISOString().slice(0, 10);
