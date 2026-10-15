@@ -73,13 +73,11 @@ function PayScreen({ accum, t, dark, onBack, onPaid }) {
   const [phone, setPhone] = useState("");
   const [paying, setPaying] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [showTrModal, setShowTrModal] = useState(false);
-  const [trId, setTrId] = useState("");
   const [isPending, setIsPending] = useState(false);
 
   const PAY_NUMBERS = {
     mtn: "0765040502",
-    airtel: "0707683295"
+    airtel: "0765040502"
   };
 
   const currentNumber = PAY_NUMBERS[payMethod];
@@ -91,28 +89,30 @@ function PayScreen({ accum, t, dark, onBack, onPaid }) {
   };
 
   const go = async () => { 
-    if(phone.length < 9) return; 
-    setShowTrModal(true);
-  };
-
-  const submitTr = async () => {
-    if(!trId) return;
+    if (phone.length < 9) return; 
     setPaying(true);
     try {
-      const res = await requestPaymentAction(phone, payMethod, accum.tier, cfg.price, trId);
+      const res = await requestPaymentAction(phone, payMethod, accum.tier, cfg.price);
       if (res.success) {
-        setIsPending(true);
-        setShowTrModal(false);
         localStorage.setItem(`user-phone`, phone);
-        localStorage.setItem(`last-request-id`, res.data.id);
+        if (res.data?.id) {
+          localStorage.setItem(`last-request-id`, res.data.id);
+        }
+        if (res.verified) {
+          localStorage.setItem(`unlocked-daily-access-${new Date().toISOString().slice(0, 10)}`, "true");
+          onPaid(phone);
+          return;
+        }
+        setIsPending(true);
       } else {
         alert("Verification request could not be sent. Please try again or contact support if the issue persists.");
       }
     } catch (e) {
       console.error(e);
       alert("An unexpected error occurred during submission.");
+    } finally {
+      setPaying(false);
     }
-    setPaying(false);
   };
 
   // Poll for auto-verification status when pending
@@ -122,6 +122,7 @@ function PayScreen({ accum, t, dark, onBack, onPaid }) {
     const interval = setInterval(async () => {
       const unlocked = await checkUnlockStatusAction(phone);
       if (unlocked) {
+        localStorage.setItem(`unlocked-daily-access-${new Date().toISOString().slice(0, 10)}`, "true");
         onPaid(phone);
         clearInterval(interval);
       }
@@ -136,8 +137,8 @@ function PayScreen({ accum, t, dark, onBack, onPaid }) {
         <div style={{fontSize:42, marginBottom:20, animation: "spin 1.5s linear infinite", display: "inline-block"}}>⚙️</div>
         <div style={{fontFamily:"'Russo One',sans-serif", fontSize:20, color:cfg.color, marginBottom:10}}>VERIFYING PAYMENT</div>
         <p style={{fontSize:13, color:t.textDim, lineHeight:1.6, fontWeight:800}}>
-          Auto-verifying transaction ID <strong>{trId}</strong>... <br/>
-          <span style={{color:t.text}}>Please wait, your ticket will unlock securely in a few moments.</span>
+          Verifying payment from <strong style={{color:t.text}}>+256 {phone.replace(/^0/, '')}</strong>... <br/>
+          <span style={{color:t.text}}>Matches automatically using your phone number. Your ticket unlocks automatically as soon as Mobile Money confirms.</span>
         </p>
         <button onClick={onBack} style={{marginTop:20, background:t.surface, border:`1px solid ${t.border}`, borderRadius:10, padding:"10px 20px", color:t.textDim, fontWeight:800, cursor:"pointer"}}>Close & Wait</button>
       </div>
@@ -149,43 +150,6 @@ function PayScreen({ accum, t, dark, onBack, onPaid }) {
       <button onClick={onBack} style={{background:"none", border:"none", color:t.textDim, cursor:"pointer", fontSize:13, fontWeight:800, marginBottom:14, padding:0, display:"flex", alignItems:"center", gap:5}}>
         <span style={{fontSize:16}}>←</span> Back to Ticket
       </button>
-
-      {/* TrID Modal Overlay */}
-      {showTrModal && (
-        <div style={{position:"fixed", inset:0, background:"rgba(0,0,0,0.85)", backdropFilter:"blur(5px)", zIndex:1000, display:"flex", alignItems:"center", justifyContent:"center", padding:20, animation:"fadeUp 0.2s ease"}}>
-          <div style={{background:t.surface, border:`2px solid ${cfg.color}`, borderRadius:20, padding:25, width:"100%", maxWidth:360, position:"relative", boxShadow:`0 10px 40px -10px ${cfg.color}88`}}>
-            <button onClick={()=>setShowTrModal(false)} style={{position:"absolute", top:15, right:15, background:"none", border:"none", color:t.textDim, fontSize:20, cursor:"pointer"}}>✕</button>
-            <div style={{textAlign:"center", marginBottom:20}}>
-              <div style={{fontSize:30, marginBottom:10}}>🆔</div>
-              <div style={{fontFamily:"'Russo One',sans-serif", fontSize:19, color:cfg.color}}>TRANSACTION ID</div>
-              <p style={{fontSize:11, color:t.textDim, marginTop:5, fontWeight:800}}>Enter the ID from your MoMo/Airtel SMS receipt</p>
-            </div>
-            
-            <input 
-              value={trId} 
-              onChange={e=>setTrId(e.target.value.replace(/\D/g, ""))} 
-              placeholder="e.g. 192837465..."
-              autoFocus
-              style={{
-                width:"100%", padding:"15px", background:t.bg, border:`1.5px solid ${trId?cfg.color:t.border}`, borderRadius:14, 
-                color:t.text, fontFamily:"'Outfit',sans-serif", fontSize:18, fontWeight:800, outline:"none", textAlign:"center",
-                transition:"all 0.2s", marginBottom:20
-              }}
-            />
-
-            <button onClick={submitTr} disabled={paying || !trId} style={{
-              width:"100%", padding:"16px",
-              background: paying || !trId ? t.border : `linear-gradient(135deg, ${cfg.color}, ${cfg.color}bb)`,
-              color: paying || !trId ? t.textDim : (cfg.dark ? "#000" : "#fff"),
-              border:"none", borderRadius:14, fontFamily:"'Russo One',sans-serif", fontSize:16, letterSpacing:1,
-              cursor: paying || !trId ? "not-allowed" : "pointer", transition:"all 0.3s",
-              display:"flex", alignItems:"center", justifyContent:"center", gap:10
-            }}>
-              {paying ? "SUBMITTING..." : "VERIFY NOW →"}
-            </button>
-          </div>
-        </div>
-      )}
 
       <div style={{textAlign:"center", marginBottom:20}}>
         <div style={{fontSize:28, marginBottom:8}}>{cfg.emoji}</div>
@@ -257,8 +221,13 @@ function PayScreen({ accum, t, dark, onBack, onPaid }) {
         </div>
         
         <div style={{fontSize:11, color:t.textDim, fontWeight:800, marginTop:5}}>
-          Recipient: <span style={{color:t.text}}>DAILY PREDICTOR</span>
+          Recipient: <span style={{color:t.text}}>DAILY PREDICTOR (MTN Mobile Money)</span>
         </div>
+        {payMethod === "airtel" && (
+          <div style={{marginTop:10, padding:"8px 12px", background:t.surface, border:`1px solid ${t.border}`, borderRadius:8, fontSize:11, color:t.textDim, fontWeight:700, lineHeight:1.4}}>
+            💡 <strong>Airtel Money Users:</strong> Select <em>Send Money → To Other Networks (MTN)</em> and send to <strong>0765040502</strong>.
+          </div>
+        )}
       </div>
 
       {/* STEP 3: CONFIRMATION */}

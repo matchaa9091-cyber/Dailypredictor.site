@@ -92,9 +92,10 @@ export async function getLatestAccumsAction(phone = null) {
   let unlockedTiers = [];
   if (phone) {
     try {
+      const cleanPhone = phone.replace(/\D/g, "").slice(-9);
       const { results: unlockedData } = await db.prepare(
-        `SELECT tier FROM unlocked_tickets WHERE phone_number = ? AND date = ?`
-      ).bind(phone, today).all();
+        `SELECT tier FROM unlocked_tickets WHERE (phone_number LIKE ? OR phone_number = ?) AND date = ?`
+      ).bind(`%${cleanPhone}`, phone, today).all();
 
       if (unlockedData) {
         unlockedTiers = unlockedData.map(u => u.tier);
@@ -272,20 +273,46 @@ export async function updateAccumAction(accumId, tier, matches, bookingCode) {
   }
 }
 
-export async function requestPaymentAction(phone, method, tier, price, trId, receiptUrl = null) {
+export async function requestPaymentAction(phone, method, tier, price, trId = null, receiptUrl = null) {
   const db = await getD1();
   const today = new Date().toISOString().slice(0, 10);
   const cleanTrId = trId ? trId.trim().toUpperCase() : null;
+  const cleanPhone = phone ? phone.replace(/\D/g, "").slice(-9) : "";
 
   try {
+    // Check if an SMS from this sender has already arrived today in sms_logs
+    let matchingSms = null;
+    if (cleanPhone) {
+      matchingSms = await db.prepare(
+        `SELECT id, content FROM sms_logs 
+         WHERE status IN ('processing', 'ignored') 
+           AND (content LIKE ? OR sender LIKE ?)
+         ORDER BY created_at DESC LIMIT 1`
+      ).bind(`%${cleanPhone}%`, `%${cleanPhone}%`).first();
+    }
+
+    const isAlreadyPaid = Boolean(matchingSms);
+    const initialStatus = isAlreadyPaid ? 'verified' : 'pending';
+
     const res = await db.prepare(
       `INSERT INTO payment_requests (phone_number, method, tier, amount, transaction_id, receipt_url, status, date)
-       VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)`
-    ).bind(phone, method, tier, price, cleanTrId, receiptUrl, today).run();
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+    ).bind(phone, method, tier, price, cleanTrId, receiptUrl, initialStatus, today).run();
 
     const insertId = res?.meta?.last_row_id;
+
+    if (isAlreadyPaid) {
+      // Mark SMS log as matched
+      await db.prepare(`UPDATE sms_logs SET status = 'matched' WHERE id = ?`).bind(matchingSms.id).run();
+      // Unlock ticket immediately
+      await db.prepare(
+        `INSERT OR IGNORE INTO unlocked_tickets (phone_number, tier, date) VALUES (?, ?, ?)`
+      ).bind(phone, tier, today).run();
+    }
+
     return {
       success: true,
+      verified: isAlreadyPaid,
       data: {
         id: insertId,
         phone_number: phone,
@@ -294,7 +321,7 @@ export async function requestPaymentAction(phone, method, tier, price, trId, rec
         amount: price,
         transaction_id: cleanTrId,
         receipt_url: receiptUrl,
-        status: 'pending',
+        status: initialStatus,
         date: today
       }
     };
@@ -336,13 +363,17 @@ export async function verifyPaymentAction(requestId) {
 }
 
 export async function checkUnlockStatusAction(phone) {
+  if (!phone) return false;
   const db = await getD1();
   const today = new Date().toISOString().slice(0, 10);
+  const cleanPhone = phone.replace(/\D/g, "").slice(-9);
 
   try {
     const row = await db.prepare(
-      `SELECT id FROM unlocked_tickets WHERE phone_number = ? AND date = ? LIMIT 1`
-    ).bind(phone, today).first();
+      `SELECT id FROM unlocked_tickets 
+       WHERE (phone_number LIKE ? OR phone_number = ?) 
+         AND date = ? LIMIT 1`
+    ).bind(`%${cleanPhone}`, phone, today).first();
 
     return Boolean(row);
   } catch (err) {

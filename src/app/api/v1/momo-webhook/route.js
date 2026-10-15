@@ -42,11 +42,27 @@ export async function POST(req) {
 
     console.log(`[Webhook] 📩 SMS from ${sender}: ${content.substring(0, 80)}...`);
 
-    // ── RegEx: Extract Transaction ID ────────────────────────────────────────
-    // MTN MoMo format:  "...Trans. ID: 12345678901..."
-    // Airtel format:    "...Ref: ABCD12345..." or "...ID: 40266720157..."
+    // ── RegEx: Extract Sender Phone Number (Uganda 9-digit format) ─────────
+    // Matches "from 2567XXXXXXXX", "from 07XXXXXXXX", "(2567XXXXXXXX)", etc.
+    let payerPhone = null;
+    const fromMatch = content.match(/from\s+[^0-9\n\r]*?(?:\+?256|0)?(7\d{8})\b/i);
+    if (fromMatch && fromMatch[1]) {
+      payerPhone = fromMatch[1];
+    } else {
+      const parenMatch = content.match(/\((?:\+?256|0)?(7\d{8})\)/);
+      if (parenMatch && parenMatch[1]) {
+        payerPhone = parenMatch[1];
+      } else {
+        const anyUgandaPhone = content.match(/(?:\b|\+)(?:256|0)?(7\d{8})\b/);
+        if (anyUgandaPhone && anyUgandaPhone[1]) {
+          payerPhone = anyUgandaPhone[1];
+        }
+      }
+    }
+
+    // ── RegEx: Extract Transaction ID (optional / fallback) ───────────────────
     const idMatch = content.match(
-      /(?:Trans(?:action)?\.?\s*ID|Ref(?:erence)?|TxID|Receipt|\bID\b)[:\s]+([0-9]{4,25})/i
+      /(?:Trans(?:action)?\.?\s*ID|Ref(?:erence)?|TxID|Receipt|\bID\b)[:\s]+([0-9A-Z]{4,25})/i
     );
     const trId = idMatch ? idMatch[1].trim().toUpperCase() : null;
 
@@ -57,7 +73,7 @@ export async function POST(req) {
 
     // ── Log the SMS to database ──────────────────────────────────────────────
     const isAmountValid = amount === null || amount >= 1000;
-    const initialStatus = (trId && isAmountValid) ? 'processing' : 'ignored';
+    const initialStatus = ((payerPhone || trId) && isAmountValid) ? 'processing' : 'ignored';
 
     const insertLogRes = await db.prepare(
       `INSERT INTO sms_logs (content, sender, status) VALUES (?, ?, ?)`
@@ -65,9 +81,9 @@ export async function POST(req) {
 
     const logId = insertLogRes?.meta?.last_row_id;
 
-    if (!trId) {
-      console.log("[Webhook] No Transaction ID found — SMS logged as ignored.");
-      return NextResponse.json({ message: "SMS logged. No Transaction ID detected.", amount });
+    if (!payerPhone && !trId) {
+      console.log("[Webhook] Neither phone number nor Transaction ID detected — SMS logged as ignored.");
+      return NextResponse.json({ message: "SMS logged. No sender phone detected.", amount });
     }
 
     if (!isAmountValid) {
@@ -78,12 +94,26 @@ export async function POST(req) {
       return NextResponse.json({ message: "Payment too low. Minimum 1000 required.", amount });
     }
 
-    console.log(`[Webhook] 🔍 Found Transaction ID: ${trId}, Amount: UGX ${amount}`);
+    console.log(`[Webhook] 🔍 Extracted Payer Phone: ${payerPhone || 'N/A'}, TxID: ${trId || 'N/A'}, Amount: UGX ${amount}`);
 
-    // ── Match against pending payment requests ───────────────────────────────
-    const request = await db.prepare(
-      `SELECT * FROM payment_requests WHERE transaction_id = ? AND status = 'pending' LIMIT 1`
-    ).bind(trId).first();
+    // ── Primary Match: BY SENDER PHONE NUMBER ────────────────────────────────
+    let request = null;
+
+    if (payerPhone) {
+      request = await db.prepare(
+        `SELECT * FROM payment_requests 
+         WHERE (phone_number LIKE ? OR phone_number = ? OR phone_number = ?) 
+           AND status = 'pending' 
+         ORDER BY created_at DESC LIMIT 1`
+      ).bind(`%${payerPhone}`, payerPhone, `256${payerPhone}`).first();
+    }
+
+    // ── Secondary Match: BY TRANSACTION ID (fallback if phone not found) ─────
+    if (!request && trId) {
+      request = await db.prepare(
+        `SELECT * FROM payment_requests WHERE transaction_id = ? AND status = 'pending' LIMIT 1`
+      ).bind(trId).first();
+    }
 
     if (request) {
       console.log(`[Webhook] ✅ MATCH! Auto-verifying request for ${request.phone_number} (${request.tier})`);
@@ -95,10 +125,14 @@ export async function POST(req) {
         await db.prepare(`UPDATE sms_logs SET status = 'matched' WHERE id = ?`).bind(logId).run();
       }
 
-      // Verify the payment request
-      await db.prepare(`UPDATE payment_requests SET status = 'verified' WHERE id = ?`).bind(request.id).run();
+      // Verify the payment request and attach transaction ID if captured
+      if (trId) {
+        await db.prepare(`UPDATE payment_requests SET status = 'verified', transaction_id = ? WHERE id = ?`).bind(trId, request.id).run();
+      } else {
+        await db.prepare(`UPDATE payment_requests SET status = 'verified' WHERE id = ?`).bind(request.id).run();
+      }
 
-      // Unlock the ticket for the customer
+      // Unlock the ticket for the customer (match by phone)
       await db.prepare(
         `INSERT OR IGNORE INTO unlocked_tickets (phone_number, tier, date) VALUES (?, ?, ?)`
       ).bind(request.phone_number, request.tier, today).run();
@@ -106,16 +140,19 @@ export async function POST(req) {
       return NextResponse.json({
         success: true,
         message: `Ticket unlocked for ${request.phone_number}`,
+        payerPhone,
         trId,
         amount,
         tier: request.tier
       });
     }
 
-    // No match yet — SMS is stored, will match when user submits their TX ID
+    // No pending request yet — SMS is logged as processing.
+    // When the customer clicks 'Confirm I Have Paid' on the site, it will match immediately!
     return NextResponse.json({
       success: true,
-      message: "SMS logged. No matching pending request found for this Transaction ID.",
+      message: "SMS logged. Pending customer submission on website.",
+      payerPhone,
       trId,
       amount
     });
