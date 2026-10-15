@@ -9,31 +9,43 @@ export async function POST(req) {
   try {
     const db = await getD1();
 
-    // ── Security: check header or query key ──────────────────────
+    // ── Security: check query key, header key, or httpSMS verified owner ──────
     const { searchParams } = new URL(req.url);
     const queryKey = searchParams.get('key');
     const headerKey = req.headers.get('x-api-key') || req.headers.get('authorization');
-    
-    if (headerKey !== SECRET_WEBHOOK_KEY && queryKey !== SECRET_WEBHOOK_KEY) {
+    const eventType = req.headers.get('x-event-type');
+
+    let body = null;
+    try {
+      body = await req.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    const isKeyAuthorized = (headerKey === SECRET_WEBHOOK_KEY || queryKey === SECRET_WEBHOOK_KEY);
+    // httpSMS includes owner phone and X-Event-Type header on outgoing webhooks from your SIM
+    const isOwnerAuthorized = (
+      Boolean(eventType) &&
+      (body?.owner === "+256765040502" || body?.owner === "256765040502" || body?.owner === "0765040502" || body?.data?.owner === "+256765040502")
+    );
+
+    if (!isKeyAuthorized && !isOwnerAuthorized) {
       console.warn("[Webhook] ⛔ Unauthorized attempt blocked");
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const body = await req.json();
-
     // ── Parse httpsms.com payload format ────────────────────────────────────
-    // httpsms.com sends: { event_type, data: { content, from, to, ... } }
     let content = "";
     let sender = "";
 
-    if (body?.data?.content) {
-      // httpsms.com format
-      content = body.data.content;
-      sender = body.data.from || body.data.contact || "MTN/AIRTEL";
-    } else if (body?.content) {
-      // Direct/manual format (for testing)
+    if (body?.content) {
+      // httpSMS direct format
       content = body.content;
-      sender = body.sender || "UNKNOWN";
+      sender = body.contact || body.sender || body.from || "MTN";
+    } else if (body?.data?.content) {
+      // httpSMS wrapped format
+      content = body.data.content;
+      sender = body.data.contact || body.data.from || body.data.sender || "MTN";
     }
 
     if (!content) {
