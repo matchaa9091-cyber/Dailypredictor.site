@@ -67,6 +67,16 @@ function WinCalc({ totalOdds, color, t }) {
   );
 }
 
+function getDeviceId() {
+  if (typeof window === "undefined") return null;
+  let devId = localStorage.getItem("dp_device_id");
+  if (!devId) {
+    devId = "dev_" + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+    localStorage.setItem("dp_device_id", devId);
+  }
+  return devId;
+}
+
 function PayScreen({ accum, t, dark, onBack, onPaid }) {
   const cfg = TIERS[accum.tier];
   const [payMethod, setPayMethod] = useState("mtn");
@@ -92,7 +102,8 @@ function PayScreen({ accum, t, dark, onBack, onPaid }) {
     if (phone.length < 9) return; 
     setPaying(true);
     try {
-      const res = await requestPaymentAction(phone, payMethod, accum.tier, cfg.price);
+      const deviceId = getDeviceId();
+      const res = await requestPaymentAction(phone, payMethod, accum.tier, cfg.price, null, null, deviceId);
       if (res.success) {
         localStorage.setItem(`user-phone`, phone);
         if (res.data?.id) {
@@ -105,7 +116,7 @@ function PayScreen({ accum, t, dark, onBack, onPaid }) {
         }
         setIsPending(true);
       } else {
-        alert("Verification request could not be sent. Please try again or contact support if the issue persists.");
+        alert(res.error || "Verification request could not be sent. Please try again or contact support if the issue persists.");
       }
     } catch (e) {
       console.error(e);
@@ -120,7 +131,8 @@ function PayScreen({ accum, t, dark, onBack, onPaid }) {
     if (!isPending) return;
 
     const interval = setInterval(async () => {
-      const unlocked = await checkUnlockStatusAction(phone);
+      const deviceId = getDeviceId();
+      const unlocked = await checkUnlockStatusAction(phone, deviceId);
       if (unlocked) {
         localStorage.setItem(`unlocked-daily-access-${new Date().toISOString().slice(0, 10)}`, "true");
         onPaid(phone);
@@ -281,24 +293,26 @@ function AccumCard({ accum, dark, t }) {
 
   useEffect(() => {
     const checkStatus = async () => {
-      // 1. Check local override first
-      const dailyAccess = localStorage.getItem(`unlocked-daily-access-${new Date().toISOString().slice(0, 10)}`);
-      if (dailyAccess === "true") {
-        setUnlocked(true);
-        return;
-      }
-      
-      // 2. Check DB using saved phone
+      const deviceId = getDeviceId();
       const savedPhone = localStorage.getItem('user-phone');
       if (savedPhone) {
-        const isActuallyUnlocked = await checkUnlockStatusAction(savedPhone);
+        const isActuallyUnlocked = await checkUnlockStatusAction(savedPhone, deviceId);
         if (isActuallyUnlocked) {
           setUnlocked(true);
           localStorage.setItem(`unlocked-daily-access-${new Date().toISOString().slice(0, 10)}`, "true");
+          return;
+        } else {
+          // If server says not unlocked for this device, clear local flag
+          localStorage.removeItem(`unlocked-daily-access-${new Date().toISOString().slice(0, 10)}`);
         }
-      } else {
-        setUnlocked(accum.tier === "free");
       }
+      
+      const dailyAccess = localStorage.getItem(`unlocked-daily-access-${new Date().toISOString().slice(0, 10)}`);
+      if (dailyAccess === "true" && !savedPhone) {
+        setUnlocked(true);
+        return;
+      }
+      setUnlocked(accum.tier === "free");
     };
     checkStatus();
   }, [accum.tier]);
@@ -622,7 +636,8 @@ export default function App() {
     (async () => {
       setLoading(true);
       const userPhone = localStorage.getItem("user-phone");
-      const stored = await getLatestAccumsAction(userPhone);
+      const deviceId = getDeviceId();
+      const stored = await getLatestAccumsAction(userPhone, deviceId);
       if (Object.keys(stored).length > 0) {
         setAccums(stored);
       }

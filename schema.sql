@@ -37,6 +37,7 @@ CREATE TABLE IF NOT EXISTS payment_requests (
   transaction_id TEXT,
   receipt_url TEXT,
   status TEXT DEFAULT 'pending',
+  device_id TEXT,
   date TEXT NOT NULL,
   created_at TEXT DEFAULT (datetime('now'))
 );
@@ -46,6 +47,7 @@ CREATE TABLE IF NOT EXISTS unlocked_tickets (
   phone_number TEXT NOT NULL,
   tier TEXT NOT NULL,
   date TEXT NOT NULL,
+  device_id TEXT,
   created_at TEXT DEFAULT (datetime('now')),
   UNIQUE(phone_number, tier, date)
 );

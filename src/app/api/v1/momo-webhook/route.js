@@ -116,23 +116,23 @@ export async function POST(req) {
         `SELECT * FROM payment_requests 
          WHERE (phone_number LIKE ? OR phone_number = ? OR phone_number = ?) 
            AND status = 'pending' 
-         ORDER BY created_at DESC LIMIT 1`
+         ORDER BY created_at ASC LIMIT 1`
       ).bind(`%${payerPhone}`, payerPhone, `256${payerPhone}`).first();
     }
 
     // ── Secondary Match: BY TRANSACTION ID (fallback if phone not found) ─────
     if (!request && trId) {
       request = await db.prepare(
-        `SELECT * FROM payment_requests WHERE transaction_id = ? AND status = 'pending' LIMIT 1`
+        `SELECT * FROM payment_requests WHERE transaction_id = ? AND status = 'pending' ORDER BY created_at ASC LIMIT 1`
       ).bind(trId).first();
     }
 
     if (request) {
-      console.log(`[Webhook] ✅ MATCH! Auto-verifying request for ${request.phone_number} (${request.tier})`);
+      console.log(`[Webhook] ✅ MATCH! Auto-verifying request for ${request.phone_number} (${request.tier}, device: ${request.device_id || 'none'})`);
 
       const today = new Date().toISOString().slice(0, 10);
 
-      // Mark SMS log as matched
+      // Mark SMS log as matched so it can never be reused
       if (logId) {
         await db.prepare(`UPDATE sms_logs SET status = 'matched' WHERE id = ?`).bind(logId).run();
       }
@@ -144,10 +144,20 @@ export async function POST(req) {
         await db.prepare(`UPDATE payment_requests SET status = 'verified' WHERE id = ?`).bind(request.id).run();
       }
 
-      // Unlock the ticket for the customer (match by phone)
+      // Unlock the ticket strictly bound to the requesting device
       await db.prepare(
-        `INSERT OR IGNORE INTO unlocked_tickets (phone_number, tier, date) VALUES (?, ?, ?)`
-      ).bind(request.phone_number, request.tier, today).run();
+        `INSERT OR REPLACE INTO unlocked_tickets (phone_number, tier, date, device_id) VALUES (?, ?, ?, ?)`
+      ).bind(request.phone_number, request.tier, today, request.device_id || null).run();
+
+      // Reject any other duplicate pending requests for this phone from different devices
+      if (payerPhone) {
+        await db.prepare(
+          `UPDATE payment_requests SET status = 'rejected' 
+           WHERE (phone_number LIKE ? OR phone_number = ?) 
+             AND date = ? 
+             AND id != ?`
+        ).bind(`%${payerPhone}`, request.phone_number, today, request.id).run();
+      }
 
       return NextResponse.json({
         success: true,
